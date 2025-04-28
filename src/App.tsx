@@ -28,6 +28,10 @@ import Units from "@/pages/product/Units";
 import Products from "@/pages/product/Products";
 import POS from "@/pages/POS";
 
+// Feature Pages
+import LoyaltyProgram from "@/pages/LoyaltyProgram";
+import Inventory from "@/pages/Inventory";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -60,12 +64,12 @@ const App = () => (
               
               {/* Main features */}
               <Route path="/pos" element={<POS />} />
-              <Route path="/inventory" element={<ComingSoon />} />
+              <Route path="/inventory" element={<Inventory />} />
               <Route path="/customers" element={<ComingSoon />} />
               <Route path="/billing" element={<ComingSoon />} />
               <Route path="/expenses" element={<ComingSoon />} />
               <Route path="/reports" element={<ComingSoon />} />
-              <Route path="/loyalty" element={<ComingSoon />} />
+              <Route path="/loyalty" element={<LoyaltyProgram />} />
               <Route path="/settings" element={<ComingSoon />} />
             </Route>
 
