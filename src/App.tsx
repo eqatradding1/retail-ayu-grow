@@ -25,6 +25,8 @@ import ComingSoon from "@/pages/ComingSoon";
 // Product Management Pages
 import Categories from "@/pages/product/Categories";
 import Units from "@/pages/product/Units";
+import Products from "@/pages/product/Products";
+import POS from "@/pages/POS";
 
 const queryClient = new QueryClient();
 
@@ -54,10 +56,10 @@ const App = () => (
               {/* Product Management */}
               <Route path="/products/categories" element={<Categories />} />
               <Route path="/products/units" element={<Units />} />
-              <Route path="/products" element={<ComingSoon />} />
+              <Route path="/products" element={<Products />} />
               
-              {/* Feature placeholder routes */}
-              <Route path="/pos" element={<ComingSoon />} />
+              {/* Main features */}
+              <Route path="/pos" element={<POS />} />
               <Route path="/inventory" element={<ComingSoon />} />
               <Route path="/customers" element={<ComingSoon />} />
               <Route path="/billing" element={<ComingSoon />} />

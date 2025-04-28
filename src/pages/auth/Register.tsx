@@ -14,7 +14,7 @@ const Register = () => {
   const [passwordError, setPasswordError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { signUp } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,7 +29,7 @@ const Register = () => {
     setIsSubmitting(true);
     
     try {
-      await signUp(email, password, name);
+      await register(email, password, name);
       navigate("/dashboard", { replace: true });
     } catch (error) {
       console.error("Registration failed:", error);
