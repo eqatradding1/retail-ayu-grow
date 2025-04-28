@@ -1,62 +1,35 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { toast } from "@/components/ui/sonner";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-// This is a mock authentication context that will be replaced with Supabase Auth
-// after connecting to Supabase
+type UserRole = "owner" | "warehouse_admin" | "cashier";
 
-export interface User {
+interface User {
   id: string;
-  email: string;
   name: string;
-  role: "owner" | "warehouse_admin" | "cashier";
-  avatar?: string;
+  email: string;
+  role: UserRole;
+  profileImage?: string | null;
 }
 
 interface AuthContextType {
   user: User | null;
-  isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  updateProfile: (userData: Partial<User>) => Promise<void>;
+  signOut: () => void;
+  register: (email: string, password: string, name: string) => Promise<void>;
+  updateProfile: (data: Partial<User>) => Promise<void>;
+  isLoading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users for demonstration
-const mockUsers: User[] = [
-  {
-    id: "1",
-    email: "owner@retailayu.com",
-    name: "Owner User",
-    role: "owner",
-    avatar: "",
-  },
-  {
-    id: "2",
-    email: "warehouse@retailayu.com",
-    name: "Warehouse Admin",
-    role: "warehouse_admin",
-    avatar: "",
-  },
-  {
-    id: "3",
-    email: "cashier@retailayu.com",
-    name: "Cashier User",
-    role: "cashier",
-    avatar: "",
-  },
-];
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+// This is a mock implementation for demo purposes
+// It will be replaced with Supabase auth later
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing session on load
   useEffect(() => {
+    // Check for saved user in localStorage (mock for persistence)
     const savedUser = localStorage.getItem("retailayu_user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
@@ -66,106 +39,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
-    try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Mock authentication logic
-      const foundUser = mockUsers.find((user) => user.email === email);
-      if (!foundUser || password !== "password") {
-        throw new Error("Invalid credentials");
-      }
-
-      setUser(foundUser);
-      localStorage.setItem("retailayu_user", JSON.stringify(foundUser));
-      toast.success(`Welcome back, ${foundUser.name}!`);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to sign in");
-      console.error("Sign in error:", error);
-      throw error;
-    } finally {
-      setIsLoading(false);
+    
+    // Mock authentication - will be replaced with Supabase
+    // Simulate network request
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    
+    // Mock user based on email
+    let role: UserRole = "cashier";
+    if (email.includes("owner")) {
+      role = "owner";
+    } else if (email.includes("admin")) {
+      role = "warehouse_admin";
     }
+    
+    const mockUser: User = {
+      id: "123",
+      name: email.split("@")[0],
+      email,
+      role,
+    };
+    
+    setUser(mockUser);
+    localStorage.setItem("retailayu_user", JSON.stringify(mockUser));
+    setIsLoading(false);
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const register = async (email: string, password: string, name: string) => {
     setIsLoading(true);
-    try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Create new user - in real app this would be done by Supabase
-      const newUser: User = {
-        id: `${mockUsers.length + 1}`,
-        email,
-        name,
-        role: "cashier", // Default role for new users
-      };
-
-      setUser(newUser);
-      localStorage.setItem("retailayu_user", JSON.stringify(newUser));
-      toast.success("Account created successfully!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to create account");
-      console.error("Sign up error:", error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
+    
+    // Mock registration - will be replaced with Supabase
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    
+    const mockUser: User = {
+      id: Date.now().toString(),
+      name,
+      email,
+      role: "owner", // Default role for new registrations
+    };
+    
+    setUser(mockUser);
+    localStorage.setItem("retailayu_user", JSON.stringify(mockUser));
+    setIsLoading(false);
   };
 
-  const signOut = async () => {
-    setIsLoading(true);
-    try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      setUser(null);
-      localStorage.removeItem("retailayu_user");
-      toast.success("Signed out successfully");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to sign out");
-      console.error("Sign out error:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const signOut = () => {
+    localStorage.removeItem("retailayu_user");
+    setUser(null);
   };
 
-  const updateProfile = async (userData: Partial<User>) => {
-    setIsLoading(true);
-    try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      if (!user) {
-        throw new Error("No user is currently logged in");
-      }
-
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      localStorage.setItem("retailayu_user", JSON.stringify(updatedUser));
-      toast.success("Profile updated successfully");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update profile");
-      console.error("Profile update error:", error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
+  const updateProfile = async (data: Partial<User>) => {
+    if (!user) return;
+    
+    // Mock API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Update user data
+    const updatedUser = { ...user, ...data };
+    setUser(updatedUser);
+    localStorage.setItem("retailayu_user", JSON.stringify(updatedUser));
+    
+    return;
   };
 
-  return (
-    <AuthContext.Provider
-      value={{ user, isLoading, signIn, signUp, signOut, updateProfile }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const value = {
+    user,
+    signIn,
+    signOut,
+    register,
+    updateProfile,
+    isLoading,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;

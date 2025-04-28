@@ -14,7 +14,16 @@ import {
   Settings,
   ChartBarIcon,
   BadgePlus,
+  Tag,
+  Search,
 } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface SidebarProps {
   open: boolean;
@@ -27,6 +36,13 @@ interface SidebarLinkProps {
   label: string;
   active?: boolean;
   onClick?: () => void;
+}
+
+interface SidebarSubmenuProps {
+  icon: React.ElementType;
+  label: string;
+  active: boolean;
+  children?: React.ReactNode;
 }
 
 const SidebarLink = ({
@@ -54,11 +70,52 @@ const SidebarLink = ({
   </Link>
 );
 
+const SidebarSubmenu = ({ 
+  icon: Icon,
+  label,
+  active,
+  children,
+}: SidebarSubmenuProps) => {
+  const [isOpen, setIsOpen] = useState(active);
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
+      <CollapsibleTrigger className="w-full">
+        <div
+          className={cn(
+            "flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors w-full",
+            active
+              ? "bg-retailayu-soft-gray text-retailayu-purple"
+              : "text-foreground/70 hover:bg-accent hover:text-foreground"
+          )}
+        >
+          <Icon className="h-5 w-5 mr-3" />
+          <span>{label}</span>
+          <div className="ml-auto">
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </div>
+          {active && !isOpen && (
+            <div className="ml-2 w-1.5 h-6 bg-retailayu-purple rounded-full"></div>
+          )}
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pl-4">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
+
 const Sidebar = ({ open, setOpen }: SidebarProps) => {
   const location = useLocation();
   const { user } = useAuth();
 
   const isActive = (path: string) => location.pathname.startsWith(path);
+  const isExactActive = (path: string) => location.pathname === path;
 
   // Close sidebar on mobile when clicking a link
   const handleLinkClick = () => {
@@ -119,18 +176,38 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
               to="/dashboard"
               icon={BarChart}
               label="Dashboard"
-              active={isActive("/dashboard")}
+              active={isExactActive("/dashboard")}
               onClick={handleLinkClick}
             />
 
             {canViewProducts && (
-              <SidebarLink
-                to="/products"
+              <SidebarSubmenu 
                 icon={ShoppingBag}
                 label="Products"
                 active={isActive("/products")}
-                onClick={handleLinkClick}
-              />
+              >
+                <SidebarLink
+                  to="/products"
+                  icon={Search}
+                  label="All Products"
+                  active={isExactActive("/products")}
+                  onClick={handleLinkClick}
+                />
+                <SidebarLink
+                  to="/products/categories"
+                  icon={Tag}
+                  label="Categories"
+                  active={isExactActive("/products/categories")}
+                  onClick={handleLinkClick}
+                />
+                <SidebarLink
+                  to="/products/units"
+                  icon={Package}
+                  label="Units"
+                  active={isExactActive("/products/units")}
+                  onClick={handleLinkClick}
+                />
+              </SidebarSubmenu>
             )}
 
             {canViewPOS && (
@@ -218,13 +295,23 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
         {/* User info */}
         <div className="p-4 border-t">
           <div className="flex items-center">
-            <div className="w-8 h-8 rounded-full bg-retailayu-purple text-white flex items-center justify-center">
-              {user?.name?.charAt(0) || "U"}
-            </div>
+            <Link to="/profile" onClick={handleLinkClick}>
+              {user?.profileImage ? (
+                <img 
+                  src={user.profileImage} 
+                  alt={user.name}
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-retailayu-purple text-white flex items-center justify-center">
+                  {user?.name?.charAt(0) || "U"}
+                </div>
+              )}
+            </Link>
             <div className="ml-3 overflow-hidden">
               <p className="text-sm font-medium">{user?.name}</p>
               <p className="text-xs text-muted-foreground truncate">
-                {user?.role.replace("_", " ")}
+                {user?.role?.replace("_", " ")}
               </p>
             </div>
           </div>

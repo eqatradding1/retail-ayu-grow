@@ -22,6 +22,10 @@ import NotFound from "@/pages/NotFound";
 import Unauthorized from "@/pages/Unauthorized";
 import ComingSoon from "@/pages/ComingSoon";
 
+// Product Management Pages
+import Categories from "@/pages/product/Categories";
+import Units from "@/pages/product/Units";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -47,8 +51,12 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
               
-              {/* Feature placeholder routes */}
+              {/* Product Management */}
+              <Route path="/products/categories" element={<Categories />} />
+              <Route path="/products/units" element={<Units />} />
               <Route path="/products" element={<ComingSoon />} />
+              
+              {/* Feature placeholder routes */}
               <Route path="/pos" element={<ComingSoon />} />
               <Route path="/inventory" element={<ComingSoon />} />
               <Route path="/customers" element={<ComingSoon />} />
