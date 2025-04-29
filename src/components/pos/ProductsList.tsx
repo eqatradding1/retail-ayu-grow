@@ -90,6 +90,19 @@ export function ProductsList({ products, categories, onAddToCart }: ProductsList
               className="border rounded-md overflow-hidden cursor-pointer hover:bg-gray-50 transition-colors flex flex-col"
               onClick={() => onAddToCart(product)}
             >
+              {product.imageUrl ? (
+                <div className="aspect-square overflow-hidden">
+                  <img 
+                    src={product.imageUrl} 
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="aspect-square bg-gray-100 flex items-center justify-center text-gray-400">
+                  No image
+                </div>
+              )}
               <div className="p-3 flex-1">
                 <div className="font-medium truncate">{product.name}</div>
                 <div className="text-sm text-gray-500">

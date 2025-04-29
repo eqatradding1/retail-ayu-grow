@@ -24,10 +24,12 @@ export function StockMovementForm({ products, onSave }: StockMovementFormProps) 
   const [notes, setNotes] = useState("");
   const [updateCostPrice, setUpdateCostPrice] = useState(false);
   const [newCostPrice, setNewCostPrice] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
   
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
     setNewCostPrice(product.costPrice);
+    setSearchTerm("");
   };
   
   const handleSave = () => {
@@ -67,9 +69,16 @@ export function StockMovementForm({ products, onSave }: StockMovementFormProps) 
     setNotes("");
     setUpdateCostPrice(false);
     setNewCostPrice(0);
+    setSearchTerm("");
     
     toast.success("Stock movement recorded successfully");
   };
+  
+  const filteredProducts = searchTerm.length > 0 ? 
+    products.filter(product => 
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (product.barcode && product.barcode.includes(searchTerm))
+    ) : [];
   
   return (
     <Card>
@@ -97,14 +106,44 @@ export function StockMovementForm({ products, onSave }: StockMovementFormProps) 
               </Button>
             </div>
           ) : (
-            <Button
-              variant="outline"
-              className="w-full flex justify-between items-center"
-              onClick={() => setIsProductSearchDialogOpen(true)}
-            >
-              <span>Search products</span>
-              <Search className="h-4 w-4" />
-            </Button>
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  type="search"
+                  placeholder="Search products..."
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              
+              {searchTerm.length > 0 && filteredProducts.length > 0 && (
+                <div className="border rounded-md overflow-hidden">
+                  {filteredProducts.map(product => (
+                    <div 
+                      key={product.id} 
+                      className="p-2 hover:bg-gray-50 cursor-pointer border-b last:border-0"
+                      onClick={() => handleProductSelect(product)}
+                    >
+                      <div className="font-medium">{product.name}</div>
+                      <div className="text-xs text-gray-500">
+                        Stock: {product.stockQuantity}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <Button
+                variant="outline"
+                className="w-full mt-2"
+                onClick={() => setIsProductSearchDialogOpen(true)}
+              >
+                <Search className="mr-2 h-4 w-4" />
+                Browse All Products
+              </Button>
+            </div>
           )}
         </div>
         
