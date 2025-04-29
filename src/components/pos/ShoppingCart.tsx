@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { ShoppingCart, X, Plus, Minus } from "lucide-react";
+import { ShoppingCart as CartIcon, X, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,7 +59,7 @@ export function ShoppingCart({
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center">
-          <ShoppingCart className="h-5 w-5 mr-2" />
+          <CartIcon className="h-5 w-5 mr-2" />
           Cart
         </CardTitle>
         <CardDescription>
