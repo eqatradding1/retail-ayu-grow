@@ -28,7 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
-import { Search, Plus, Pencil, Trash2, BadgePlus, History } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, History, QrCode } from "lucide-react";
 
 // Define Customer type
 interface Customer {
@@ -42,6 +42,7 @@ interface Customer {
   totalSpent: number;
   lastPurchaseDate?: string;
   notes?: string;
+  qrCode?: string;
 }
 
 // Mock customer data
@@ -92,18 +93,16 @@ export default function Customers() {
   const [isEditCustomerDialogOpen, setIsEditCustomerDialogOpen] = useState(false);
   const [isDeleteCustomerDialogOpen, setIsDeleteCustomerDialogOpen] = useState(false);
   const [isViewHistoryDialogOpen, setIsViewHistoryDialogOpen] = useState(false);
-  const [isAddPointsDialogOpen, setIsAddPointsDialogOpen] = useState(false);
+  const [isViewQRCodeDialogOpen, setIsViewQRCodeDialogOpen] = useState(false);
   
   const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(null);
-  const [newCustomer, setNewCustomer] = useState<Omit<Customer, "id" | "registeredDate" | "totalSpent" | "loyaltyPoints">>({
+  const [newCustomer, setNewCustomer] = useState<Omit<Customer, "id" | "registeredDate" | "totalSpent" | "loyaltyPoints" | "qrCode">>({
     name: "",
     phone: "",
     email: "",
     address: "",
     notes: ""
   });
-  
-  const [pointsToAdd, setPointsToAdd] = useState<number>(0);
   
   // Filter customers based on search term
   const filteredCustomers = searchTerm
@@ -139,14 +138,23 @@ export default function Customers() {
     }
   ];
 
+  // Generate QR Code - For demo we'll just use a placeholder
+  const generateQRCode = (customerId: string) => {
+    // This would normally call an API to generate a QR code
+    // For demo purposes, we'll just return a placeholder URL
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=CUSTOMER_ID_${customerId}`;
+  };
+
   // Handle adding a new customer
   const handleAddCustomer = () => {
+    const customerId = Date.now().toString();
     const customer: Customer = {
-      id: Date.now().toString(),
+      id: customerId,
       ...newCustomer,
       loyaltyPoints: 0,
       registeredDate: new Date().toISOString().split("T")[0],
-      totalSpent: 0
+      totalSpent: 0,
+      qrCode: generateQRCode(customerId)
     };
     
     setCustomers([...customers, customer]);
@@ -185,26 +193,6 @@ export default function Customers() {
     setCustomers(updatedCustomers);
     setIsDeleteCustomerDialogOpen(false);
     toast.success("Customer deleted successfully");
-  };
-
-  // Handle adding loyalty points
-  const handleAddPoints = () => {
-    if (!currentCustomer || pointsToAdd <= 0) return;
-    
-    const updatedCustomers = customers.map(customer => {
-      if (customer.id === currentCustomer.id) {
-        return {
-          ...customer,
-          loyaltyPoints: customer.loyaltyPoints + pointsToAdd
-        };
-      }
-      return customer;
-    });
-    
-    setCustomers(updatedCustomers);
-    setIsAddPointsDialogOpen(false);
-    setPointsToAdd(0);
-    toast.success(`${pointsToAdd} points added successfully`);
   };
 
   return (
@@ -253,12 +241,7 @@ export default function Customers() {
                     <div>{customer.phone}</div>
                     <div className="text-xs text-muted-foreground">{customer.email}</div>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <BadgePlus className="w-4 h-4 text-green-500 mr-1" />
-                      <span>{customer.loyaltyPoints} points</span>
-                    </div>
-                  </TableCell>
+                  <TableCell>{customer.loyaltyPoints} points</TableCell>
                   <TableCell>{customer.totalSpent.toLocaleString()}</TableCell>
                   <TableCell>{customer.lastPurchaseDate || "N/A"}</TableCell>
                   <TableCell className="text-right space-x-1">
@@ -277,10 +260,17 @@ export default function Customers() {
                       size="icon"
                       onClick={() => {
                         setCurrentCustomer(customer);
-                        setIsAddPointsDialogOpen(true);
+                        if (!customer.qrCode) {
+                          const updatedCustomer = {
+                            ...customer,
+                            qrCode: generateQRCode(customer.id)
+                          };
+                          setCurrentCustomer(updatedCustomer);
+                        }
+                        setIsViewQRCodeDialogOpen(true);
                       }}
                     >
-                      <BadgePlus className="h-4 w-4" />
+                      <QrCode className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -509,37 +499,45 @@ export default function Customers() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Loyalty Points Dialog */}
-      <Dialog open={isAddPointsDialogOpen} onOpenChange={setIsAddPointsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      {/* View QR Code Dialog */}
+      <Dialog open={isViewQRCodeDialogOpen} onOpenChange={setIsViewQRCodeDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Add Loyalty Points</DialogTitle>
+            <DialogTitle>Customer QR Code</DialogTitle>
             <DialogDescription>
-              Add points to {currentCustomer?.name}'s loyalty account
+              QR Code for {currentCustomer?.name}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">
-                Current Points: <span className="font-medium text-foreground">{currentCustomer?.loyaltyPoints || 0}</span>
-              </p>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="points">Points to Add</Label>
-              <Input 
-                id="points" 
-                type="number"
-                min="1"
-                value={pointsToAdd || ""}
-                onChange={(e) => setPointsToAdd(Number(e.target.value))}
-              />
-            </div>
+          <div className="flex flex-col items-center justify-center py-6">
+            {currentCustomer?.qrCode && (
+              <div className="border p-4 rounded-lg bg-white">
+                <img
+                  src={currentCustomer.qrCode}
+                  alt="Customer QR Code"
+                  className="w-48 h-48"
+                />
+              </div>
+            )}
+            <p className="text-center mt-4 text-sm text-muted-foreground">
+              Customer ID: {currentCustomer?.id}
+            </p>
+            <p className="text-center mt-1 text-sm text-muted-foreground">
+              Scan this code at checkout to quickly access customer information.
+            </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddPointsDialogOpen(false)}>
-              Cancel
+            <Button
+              variant="outline"
+              onClick={() => {
+                toast.success("QR Code downloaded");
+                // In a real application, this would trigger a download of the QR code image
+              }}
+            >
+              Download
             </Button>
-            <Button onClick={handleAddPoints}>Add Points</Button>
+            <Button onClick={() => setIsViewQRCodeDialogOpen(false)}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

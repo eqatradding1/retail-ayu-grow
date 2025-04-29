@@ -1,10 +1,10 @@
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -16,298 +16,389 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/sonner";
-import { BadgePlus, Search, Users, Gift, Star, Award } from "lucide-react";
-import { Product } from "@/types/product";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Plus, Edit, Trash, Check, X, Gift } from "lucide-react";
+import { RedemptionForm } from "@/components/loyalty/RedemptionForm";
 
-// Mock data for products that can be redeemed
-const redeemableProducts: Product[] = [
-  {
-    id: "1",
-    name: "Rice",
-    barcode: "8992775210101",
-    description: "Premium quality rice",
-    categoryId: "5",
-    unitId: "5",
-    stockQuantity: 50,
-    minStockLevel: 10,
-    costPrice: 15000,
-    retailPrice: 18000,
-    priceLevels: [],
-    loyaltyPoints: 18,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: "2",
-    name: "Sugar",
-    barcode: "8992775210102",
-    description: "White sugar",
-    categoryId: "5",
-    unitId: "1",
-    stockQuantity: 40,
-    minStockLevel: 8,
-    costPrice: 12000,
-    retailPrice: 14000,
-    priceLevels: [],
-    loyaltyPoints: 14,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
-
-// Mock data for loyalty rewards
-interface LoyaltyReward {
+// Define types
+interface Reward {
   id: string;
   name: string;
+  pointsCost: number;
   description: string;
-  pointsRequired: number;
-  productId?: string;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
-const initialRewards: LoyaltyReward[] = [
-  {
-    id: "1",
-    name: "Free Rice Pack",
-    description: "Get a free pack of premium rice",
-    pointsRequired: 2000,
-    productId: "1",
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: "2",
-    name: "50% Discount",
-    description: "50% discount on your next purchase",
-    pointsRequired: 3000,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
+interface Rule {
+  id: string;
+  name: string;
+  type: "purchase" | "referral" | "signup" | "review";
+  pointsAwarded: number;
+  condition?: string;
+  isActive: boolean;
+}
 
-// Mock data for customer redemptions
-interface CustomerRedemption {
+interface Redemption {
   id: string;
   customerId: string;
   customerName: string;
   rewardId: string;
   rewardName: string;
-  pointsUsed: number;
-  redeemedAt: string;
+  pointsCost: number;
+  date: string;
+  status: "pending" | "completed" | "cancelled";
+  notes?: string;
 }
 
-const initialRedemptions: CustomerRedemption[] = [
+interface Customer {
+  id: string;
+  name: string;
+  loyaltyPoints: number;
+}
+
+// Mock data
+const initialRewards: Reward[] = [
   {
     id: "1",
-    customerId: "101",
-    customerName: "John Doe",
-    rewardId: "1",
-    rewardName: "Free Rice Pack",
-    pointsUsed: 2000,
-    redeemedAt: new Date().toISOString()
+    name: "Free Coffee",
+    pointsCost: 100,
+    description: "Enjoy a free coffee of your choice",
+    isActive: true,
   },
   {
     id: "2",
-    customerId: "102",
-    customerName: "Jane Smith",
+    name: "10% Off Next Purchase",
+    pointsCost: 200,
+    description: "Get 10% off on your next purchase",
+    isActive: true,
+  },
+  {
+    id: "3",
+    name: "$25 Gift Card",
+    pointsCost: 500,
+    description: "Receive a $25 gift card",
+    isActive: true,
+  },
+];
+
+const initialRules: Rule[] = [
+  {
+    id: "1",
+    name: "Purchase",
+    type: "purchase",
+    pointsAwarded: 1,
+    condition: "Per 5,000 spent",
+    isActive: true,
+  },
+  {
+    id: "2",
+    name: "Referral",
+    type: "referral",
+    pointsAwarded: 50,
+    condition: "When a referred friend makes their first purchase",
+    isActive: true,
+  },
+  {
+    id: "3",
+    name: "Sign Up",
+    type: "signup",
+    pointsAwarded: 20,
+    condition: "When a new customer creates an account",
+    isActive: true,
+  },
+];
+
+// Mock customers for redemption
+const mockCustomers: Customer[] = [
+  { id: "1", name: "John Doe", loyaltyPoints: 250 },
+  { id: "2", name: "Jane Smith", loyaltyPoints: 175 },
+  { id: "3", name: "Robert Johnson", loyaltyPoints: 540 },
+];
+
+const initialRedemptions: Redemption[] = [
+  {
+    id: "1",
+    customerId: "1",
+    customerName: "John Doe",
+    rewardId: "1",
+    rewardName: "Free Coffee",
+    pointsCost: 100,
+    date: "2023-04-15",
+    status: "completed"
+  },
+  {
+    id: "2",
+    customerId: "3",
+    customerName: "Robert Johnson",
     rewardId: "2",
-    rewardName: "50% Discount",
-    pointsUsed: 3000,
-    redeemedAt: new Date(Date.now() - 86400000).toISOString() // Yesterday
+    rewardName: "10% Off Next Purchase",
+    pointsCost: 200,
+    date: "2023-04-20",
+    status: "pending"
   }
 ];
 
 export default function LoyaltyProgram() {
-  const [rewards, setRewards] = useState<LoyaltyReward[]>(initialRewards);
-  const [redemptions, setRedemptions] = useState<CustomerRedemption[]>(initialRedemptions);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [currentReward, setCurrentReward] = useState<LoyaltyReward | null>(null);
+  const [activeTab, setActiveTab] = useState("rewards");
+  const [rewards, setRewards] = useState<Reward[]>(initialRewards);
+  const [rules, setRules] = useState<Rule[]>(initialRules);
+  const [redemptions, setRedemptions] = useState<Redemption[]>(initialRedemptions);
   
-  const [newReward, setNewReward] = useState({
+  // Dialog states
+  const [isAddRewardOpen, setIsAddRewardOpen] = useState(false);
+  const [isEditRewardOpen, setIsEditRewardOpen] = useState(false);
+  const [isDeleteRewardOpen, setIsDeleteRewardOpen] = useState(false);
+  
+  const [isAddRuleOpen, setIsAddRuleOpen] = useState(false);
+  const [isEditRuleOpen, setIsEditRuleOpen] = useState(false);
+  const [isDeleteRuleOpen, setIsDeleteRuleOpen] = useState(false);
+  
+  const [isUpdateRedemptionOpen, setIsUpdateRedemptionOpen] = useState(false);
+
+  // Form states
+  const [currentReward, setCurrentReward] = useState<Reward | null>(null);
+  const [currentRule, setCurrentRule] = useState<Rule | null>(null);
+  const [currentRedemption, setCurrentRedemption] = useState<Redemption | null>(null);
+  
+  const [newReward, setNewReward] = useState<Omit<Reward, "id" | "isActive">>({
     name: "",
+    pointsCost: 0,
     description: "",
-    pointsRequired: 1000,
-    productId: "",
-    isActive: true
+  });
+  
+  const [newRule, setNewRule] = useState<Omit<Rule, "id" | "isActive">>({
+    name: "",
+    type: "purchase",
+    pointsAwarded: 0,
+    condition: "",
   });
 
-  // Filter rewards based on search term
-  const filteredRewards = searchTerm
-    ? rewards.filter(reward => 
-        reward.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        reward.description.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : rewards;
-
-  // Filter redemptions based on search term
-  const filteredRedemptions = searchTerm
-    ? redemptions.filter(redemption =>
-        redemption.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        redemption.rewardName.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : redemptions;
-
+  // Add new reward
   const handleAddReward = () => {
-    const reward: LoyaltyReward = {
+    if (!newReward.name || newReward.pointsCost <= 0) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
+    const reward: Reward = {
       id: Date.now().toString(),
-      name: newReward.name,
-      description: newReward.description,
-      pointsRequired: newReward.pointsRequired,
-      productId: newReward.productId || undefined,
-      isActive: newReward.isActive,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      ...newReward,
+      isActive: true,
     };
-
+    
     setRewards([...rewards, reward]);
-    setIsAddDialogOpen(false);
+    setIsAddRewardOpen(false);
     setNewReward({
       name: "",
+      pointsCost: 0,
       description: "",
-      pointsRequired: 1000,
-      productId: "",
-      isActive: true
     });
     toast.success("Reward added successfully");
   };
 
-  const handleEditReward = () => {
+  // Update reward
+  const handleUpdateReward = () => {
     if (!currentReward) return;
-
-    const updatedRewards = rewards.map(reward =>
-      reward.id === currentReward.id ? {
-        ...currentReward,
-        updatedAt: new Date().toISOString()
-      } : reward
-    );
-
-    setRewards(updatedRewards);
-    setIsEditDialogOpen(false);
+    
+    setRewards(rewards.map(reward => 
+      reward.id === currentReward.id ? currentReward : reward
+    ));
+    
+    setIsEditRewardOpen(false);
     toast.success("Reward updated successfully");
   };
 
-  const toggleRewardStatus = (rewardId: string) => {
-    const updatedRewards = rewards.map(reward =>
-      reward.id === rewardId ? {
-        ...reward,
-        isActive: !reward.isActive,
-        updatedAt: new Date().toISOString()
-      } : reward
-    );
-
-    setRewards(updatedRewards);
-    toast.success("Reward status updated");
+  // Delete reward
+  const handleDeleteReward = () => {
+    if (!currentReward) return;
+    
+    setRewards(rewards.filter(reward => reward.id !== currentReward.id));
+    setIsDeleteRewardOpen(false);
+    toast.success("Reward deleted successfully");
   };
 
-  const getProductName = (productId?: string) => {
-    if (!productId) return "N/A";
-    const product = redeemableProducts.find(p => p.id === productId);
-    return product ? product.name : "Unknown Product";
+  // Add new rule
+  const handleAddRule = () => {
+    if (!newRule.name || newRule.pointsAwarded <= 0) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
+    const rule: Rule = {
+      id: Date.now().toString(),
+      ...newRule,
+      isActive: true,
+    };
+    
+    setRules([...rules, rule]);
+    setIsAddRuleOpen(false);
+    setNewRule({
+      name: "",
+      type: "purchase",
+      pointsAwarded: 0,
+      condition: "",
+    });
+    toast.success("Rule added successfully");
+  };
+
+  // Update rule
+  const handleUpdateRule = () => {
+    if (!currentRule) return;
+    
+    setRules(rules.map(rule => 
+      rule.id === currentRule.id ? currentRule : rule
+    ));
+    
+    setIsEditRuleOpen(false);
+    toast.success("Rule updated successfully");
+  };
+
+  // Delete rule
+  const handleDeleteRule = () => {
+    if (!currentRule) return;
+    
+    setRules(rules.filter(rule => rule.id !== currentRule.id));
+    setIsDeleteRuleOpen(false);
+    toast.success("Rule deleted successfully");
+  };
+  
+  // Toggle rule/reward active status
+  const toggleActiveStatus = (
+    type: "rule" | "reward",
+    id: string,
+    currentStatus: boolean
+  ) => {
+    if (type === "rule") {
+      setRules(
+        rules.map((rule) =>
+          rule.id === id ? { ...rule, isActive: !currentStatus } : rule
+        )
+      );
+    } else {
+      setRewards(
+        rewards.map((reward) =>
+          reward.id === id ? { ...reward, isActive: !currentStatus } : reward
+        )
+      );
+    }
+    toast.success(`${type} status updated successfully`);
+  };
+
+  // Add redemption
+  const handleAddRedemption = (redemption: Redemption) => {
+    setRedemptions([...redemptions, redemption]);
+  };
+
+  // Update redemption status
+  const handleUpdateRedemptionStatus = (status: "completed" | "cancelled") => {
+    if (!currentRedemption) return;
+    
+    setRedemptions(redemptions.map(redemption => 
+      redemption.id === currentRedemption.id 
+        ? { ...currentRedemption, status } 
+        : redemption
+    ));
+    
+    setIsUpdateRedemptionOpen(false);
+    
+    if (status === "completed") {
+      toast.success("Redemption marked as completed");
+    } else {
+      toast.success("Redemption cancelled");
+    }
   };
 
   return (
     <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Loyalty Program</h1>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
-          <BadgePlus className="mr-2 h-4 w-4" /> Add Reward
-        </Button>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Loyalty Program</h1>
+          <p className="text-muted-foreground">
+            Manage your loyalty program rewards and rules
+          </p>
+        </div>
+        <div className="flex space-x-2 mt-4 md:mt-0">
+          <Button variant="outline">View Program Statistics</Button>
+        </div>
       </div>
 
-      <Tabs defaultValue="rewards" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="rewards">
-            <Gift className="mr-2 h-4 w-4" />
-            Rewards
-          </TabsTrigger>
-          <TabsTrigger value="redemptions">
-            <Star className="mr-2 h-4 w-4" />
-            Redemptions
-          </TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid grid-cols-3 w-full max-w-md">
+          <TabsTrigger value="rewards">Rewards</TabsTrigger>
+          <TabsTrigger value="rules">Rules</TabsTrigger>
+          <TabsTrigger value="redemptions">Redemptions</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="rewards">
+        {/* Rewards Tab */}
+        <TabsContent value="rewards" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Loyalty Rewards</CardTitle>
-              <CardDescription>
-                Manage your loyalty rewards program
-              </CardDescription>
-              <div className="relative flex mt-4">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input 
-                  type="search" 
-                  placeholder="Search rewards..." 
-                  className="pl-8 w-full" 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Available Rewards</CardTitle>
+                <CardDescription>
+                  Rewards that customers can redeem with their points
+                </CardDescription>
               </div>
+              <Button onClick={() => setIsAddRewardOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Add Reward
+              </Button>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Reward Name</TableHead>
-                    <TableHead>Points Required</TableHead>
-                    <TableHead>Product</TableHead>
+                    <TableHead>Reward</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Points Cost</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRewards.map((reward) => (
+                  {rewards.map((reward) => (
                     <TableRow key={reward.id}>
-                      <TableCell className="font-medium">
-                        <div className="font-medium">{reward.name}</div>
-                        <div className="text-sm text-muted-foreground">{reward.description}</div>
-                      </TableCell>
-                      <TableCell>{reward.pointsRequired.toLocaleString()}</TableCell>
-                      <TableCell>{getProductName(reward.productId)}</TableCell>
+                      <TableCell className="font-medium">{reward.name}</TableCell>
+                      <TableCell>{reward.description}</TableCell>
+                      <TableCell>{reward.pointsCost}</TableCell>
                       <TableCell>
-                        {reward.isActive ? (
-                          <Badge variant="default" className="bg-green-500">Active</Badge>
-                        ) : (
-                          <Badge variant="outline">Inactive</Badge>
-                        )}
+                        <Badge variant={reward.isActive ? "success" : "secondary"}>
+                          {reward.isActive ? "Active" : "Inactive"}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right space-x-1">
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
                           onClick={() => {
                             setCurrentReward(reward);
-                            setIsEditDialogOpen(true);
+                            setIsEditRewardOpen(true);
                           }}
                         >
-                          Edit
+                          <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
-                          size="sm"
-                          onClick={() => toggleRewardStatus(reward.id)}
+                          size="icon"
+                          onClick={() => toggleActiveStatus("reward", reward.id, reward.isActive)}
                         >
-                          {reward.isActive ? "Deactivate" : "Activate"}
+                          {reward.isActive ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setCurrentReward(reward);
+                            setIsDeleteRewardOpen(true);
+                          }}
+                        >
+                          <Trash className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -318,43 +409,152 @@ export default function LoyaltyProgram() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="redemptions">
+        {/* Rules Tab */}
+        <TabsContent value="rules" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Customer Redemptions</CardTitle>
-              <CardDescription>
-                History of reward redemptions by customers
-              </CardDescription>
-              <div className="relative flex mt-4">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input 
-                  type="search" 
-                  placeholder="Search redemptions..." 
-                  className="pl-8 w-full" 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Point Earning Rules</CardTitle>
+                <CardDescription>
+                  Define how customers earn loyalty points
+                </CardDescription>
               </div>
+              <Button onClick={() => setIsAddRuleOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Add Rule
+              </Button>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Reward</TableHead>
-                    <TableHead>Points Used</TableHead>
-                    <TableHead>Redemption Date</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Points Awarded</TableHead>
+                    <TableHead>Condition</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRedemptions.map((redemption) => (
-                    <TableRow key={redemption.id}>
-                      <TableCell className="font-medium">{redemption.customerName}</TableCell>
-                      <TableCell>{redemption.rewardName}</TableCell>
-                      <TableCell>{redemption.pointsUsed.toLocaleString()}</TableCell>
-                      <TableCell>{new Date(redemption.redeemedAt).toLocaleDateString()}</TableCell>
+                  {rules.map((rule) => (
+                    <TableRow key={rule.id}>
+                      <TableCell className="font-medium">{rule.name}</TableCell>
+                      <TableCell className="capitalize">{rule.type}</TableCell>
+                      <TableCell>{rule.pointsAwarded}</TableCell>
+                      <TableCell>{rule.condition}</TableCell>
+                      <TableCell>
+                        <Badge variant={rule.isActive ? "success" : "secondary"}>
+                          {rule.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setCurrentRule(rule);
+                            setIsEditRuleOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleActiveStatus("rule", rule.id, rule.isActive)}
+                        >
+                          {rule.isActive ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setCurrentRule(rule);
+                            setIsDeleteRuleOpen(true);
+                          }}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Redemptions Tab */}
+        <TabsContent value="redemptions" className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Redemption History</CardTitle>
+                <CardDescription>
+                  Track customer reward redemptions
+                </CardDescription>
+              </div>
+              <RedemptionForm 
+                rewards={rewards.filter(r => r.isActive)} 
+                customers={mockCustomers}
+                onAddRedemption={handleAddRedemption}
+              />
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Reward</TableHead>
+                    <TableHead>Points</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {redemptions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                        No redemptions found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    redemptions.map((redemption) => (
+                      <TableRow key={redemption.id}>
+                        <TableCell>{redemption.date}</TableCell>
+                        <TableCell className="font-medium">{redemption.customerName}</TableCell>
+                        <TableCell>{redemption.rewardName}</TableCell>
+                        <TableCell>{redemption.pointsCost}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={
+                              redemption.status === "completed" ? "success" :
+                              redemption.status === "cancelled" ? "destructive" : 
+                              "warning"
+                            }
+                          >
+                            {redemption.status.charAt(0).toUpperCase() + redemption.status.slice(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {redemption.status === "pending" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setCurrentRedemption(redemption);
+                                setIsUpdateRedemptionOpen(true);
+                              }}
+                            >
+                              <Gift className="h-4 w-4 mr-1" />
+                              Process
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -363,72 +563,48 @@ export default function LoyaltyProgram() {
       </Tabs>
 
       {/* Add Reward Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      <Dialog open={isAddRewardOpen} onOpenChange={setIsAddRewardOpen}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Add New Reward</DialogTitle>
             <DialogDescription>
-              Create a new loyalty reward for your customers.
+              Create a new reward that customers can redeem with their points.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Reward Name</Label>
-              <Input 
-                id="name" 
+              <Label htmlFor="reward-name">Reward Name</Label>
+              <Input
+                id="reward-name"
                 value={newReward.name}
-                onChange={(e) => setNewReward({...newReward, name: e.target.value})}
-                placeholder="e.g., Free Product"
+                onChange={(e) => setNewReward({ ...newReward, name: e.target.value })}
+                placeholder="e.g., Free Coffee"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
-              <Input 
-                id="description" 
-                value={newReward.description}
-                onChange={(e) => setNewReward({...newReward, description: e.target.value})}
-                placeholder="Describe the reward"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="pointsRequired">Points Required</Label>
-              <Input 
-                id="pointsRequired" 
+              <Label htmlFor="points-cost">Points Cost</Label>
+              <Input
+                id="points-cost"
                 type="number"
-                value={newReward.pointsRequired}
-                onChange={(e) => setNewReward({...newReward, pointsRequired: Number(e.target.value)})}
-                min={1}
+                min="1"
+                value={newReward.pointsCost || ""}
+                onChange={(e) => setNewReward({ ...newReward, pointsCost: parseInt(e.target.value) })}
+                placeholder="e.g., 100"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="product">Associated Product (Optional)</Label>
-              <select
-                id="product"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={newReward.productId}
-                onChange={(e) => setNewReward({...newReward, productId: e.target.value})}
-              >
-                <option value="">-- Select Product --</option>
-                {redeemableProducts.map(product => (
-                  <option key={product.id} value={product.id}>
-                    {product.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="isActive" 
-                checked={newReward.isActive}
-                onCheckedChange={(checked) => 
-                  setNewReward({...newReward, isActive: checked === true})
-                }
+              <Label htmlFor="reward-description">Description</Label>
+              <Textarea
+                id="reward-description"
+                value={newReward.description}
+                onChange={(e) => setNewReward({ ...newReward, description: e.target.value })}
+                placeholder="Describe this reward"
+                rows={3}
               />
-              <Label htmlFor="isActive">Active Reward</Label>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsAddRewardOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleAddReward}>Add Reward</Button>
@@ -437,75 +613,289 @@ export default function LoyaltyProgram() {
       </Dialog>
 
       {/* Edit Reward Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      <Dialog open={isEditRewardOpen} onOpenChange={setIsEditRewardOpen}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Reward</DialogTitle>
             <DialogDescription>
-              Make changes to the loyalty reward.
+              Update the details of this reward.
             </DialogDescription>
           </DialogHeader>
           {currentReward && (
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="edit-name">Reward Name</Label>
-                <Input 
-                  id="edit-name" 
+                <Label htmlFor="edit-reward-name">Reward Name</Label>
+                <Input
+                  id="edit-reward-name"
                   value={currentReward.name}
-                  onChange={(e) => setCurrentReward({...currentReward, name: e.target.value})}
+                  onChange={(e) => setCurrentReward({ ...currentReward, name: e.target.value })}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-description">Description</Label>
-                <Input 
-                  id="edit-description" 
-                  value={currentReward.description}
-                  onChange={(e) => setCurrentReward({...currentReward, description: e.target.value})}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-pointsRequired">Points Required</Label>
-                <Input 
-                  id="edit-pointsRequired" 
+                <Label htmlFor="edit-points-cost">Points Cost</Label>
+                <Input
+                  id="edit-points-cost"
                   type="number"
-                  value={currentReward.pointsRequired}
-                  onChange={(e) => setCurrentReward({...currentReward, pointsRequired: Number(e.target.value)})}
-                  min={1}
+                  min="1"
+                  value={currentReward.pointsCost}
+                  onChange={(e) => setCurrentReward({ ...currentReward, pointsCost: parseInt(e.target.value) })}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-product">Associated Product (Optional)</Label>
-                <select
-                  id="edit-product"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={currentReward.productId || ""}
-                  onChange={(e) => setCurrentReward({...currentReward, productId: e.target.value || undefined})}
-                >
-                  <option value="">-- Select Product --</option>
-                  {redeemableProducts.map(product => (
-                    <option key={product.id} value={product.id}>
-                      {product.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="edit-isActive" 
-                  checked={currentReward.isActive}
-                  onCheckedChange={(checked) => 
-                    setCurrentReward({...currentReward, isActive: checked === true})
-                  }
+                <Label htmlFor="edit-reward-description">Description</Label>
+                <Textarea
+                  id="edit-reward-description"
+                  value={currentReward.description}
+                  onChange={(e) => setCurrentReward({ ...currentReward, description: e.target.value })}
+                  rows={3}
                 />
-                <Label htmlFor="edit-isActive">Active Reward</Label>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsEditRewardOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleEditReward}>Save Changes</Button>
+            <Button onClick={handleUpdateReward}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Reward Dialog */}
+      <Dialog open={isDeleteRewardOpen} onOpenChange={setIsDeleteRewardOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Reward</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this reward?
+            </DialogDescription>
+          </DialogHeader>
+          <p>
+            This will permanently delete the "{currentReward?.name}" reward.
+            This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteRewardOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteReward}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Rule Dialog */}
+      <Dialog open={isAddRuleOpen} onOpenChange={setIsAddRuleOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Rule</DialogTitle>
+            <DialogDescription>
+              Create a new rule for earning loyalty points.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="rule-name">Rule Name</Label>
+              <Input
+                id="rule-name"
+                value={newRule.name}
+                onChange={(e) => setNewRule({ ...newRule, name: e.target.value })}
+                placeholder="e.g., Purchase Points"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="rule-type">Rule Type</Label>
+              <Select
+                value={newRule.type}
+                onValueChange={(value) => setNewRule({ ...newRule, type: value as any })}
+              >
+                <SelectTrigger id="rule-type">
+                  <SelectValue placeholder="Select rule type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="purchase">Purchase</SelectItem>
+                  <SelectItem value="referral">Referral</SelectItem>
+                  <SelectItem value="signup">Sign Up</SelectItem>
+                  <SelectItem value="review">Review</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="points-awarded">Points Awarded</Label>
+              <Input
+                id="points-awarded"
+                type="number"
+                min="1"
+                value={newRule.pointsAwarded || ""}
+                onChange={(e) => setNewRule({ ...newRule, pointsAwarded: parseInt(e.target.value) })}
+                placeholder="e.g., 10"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="rule-condition">Condition (Optional)</Label>
+              <Input
+                id="rule-condition"
+                value={newRule.condition || ""}
+                onChange={(e) => setNewRule({ ...newRule, condition: e.target.value })}
+                placeholder="e.g., Per 10,000 spent"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddRuleOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddRule}>Add Rule</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Rule Dialog */}
+      <Dialog open={isEditRuleOpen} onOpenChange={setIsEditRuleOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Rule</DialogTitle>
+            <DialogDescription>
+              Update the details of this rule.
+            </DialogDescription>
+          </DialogHeader>
+          {currentRule && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-rule-name">Rule Name</Label>
+                <Input
+                  id="edit-rule-name"
+                  value={currentRule.name}
+                  onChange={(e) => setCurrentRule({ ...currentRule, name: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-rule-type">Rule Type</Label>
+                <Select
+                  value={currentRule.type}
+                  onValueChange={(value) => setCurrentRule({ ...currentRule, type: value as any })}
+                >
+                  <SelectTrigger id="edit-rule-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="purchase">Purchase</SelectItem>
+                    <SelectItem value="referral">Referral</SelectItem>
+                    <SelectItem value="signup">Sign Up</SelectItem>
+                    <SelectItem value="review">Review</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-points-awarded">Points Awarded</Label>
+                <Input
+                  id="edit-points-awarded"
+                  type="number"
+                  min="1"
+                  value={currentRule.pointsAwarded}
+                  onChange={(e) => setCurrentRule({ ...currentRule, pointsAwarded: parseInt(e.target.value) })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-rule-condition">Condition (Optional)</Label>
+                <Input
+                  id="edit-rule-condition"
+                  value={currentRule.condition || ""}
+                  onChange={(e) => setCurrentRule({ ...currentRule, condition: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditRuleOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateRule}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Rule Dialog */}
+      <Dialog open={isDeleteRuleOpen} onOpenChange={setIsDeleteRuleOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Rule</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this rule?
+            </DialogDescription>
+          </DialogHeader>
+          <p>
+            This will permanently delete the "{currentRule?.name}" rule.
+            This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteRuleOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteRule}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update Redemption Status Dialog */}
+      <Dialog open={isUpdateRedemptionOpen} onOpenChange={setIsUpdateRedemptionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Process Redemption</DialogTitle>
+            <DialogDescription>
+              Update the status of this redemption request.
+            </DialogDescription>
+          </DialogHeader>
+          {currentRedemption && (
+            <div className="py-4">
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between">
+                  <span className="font-medium">Customer:</span>
+                  <span>{currentRedemption.customerName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Reward:</span>
+                  <span>{currentRedemption.rewardName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Points:</span>
+                  <span>{currentRedemption.pointsCost}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Date:</span>
+                  <span>{currentRedemption.date}</span>
+                </div>
+                {currentRedemption.notes && (
+                  <div className="pt-2">
+                    <span className="font-medium">Notes:</span>
+                    <p className="text-sm">{currentRedemption.notes}</p>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <p className="text-muted-foreground text-sm">
+                  Mark this redemption as completed when the customer has received their reward,
+                  or cancel if it cannot be fulfilled.
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => handleUpdateRedemptionStatus("cancelled")}
+            >
+              Cancel Redemption
+            </Button>
+            <Button 
+              onClick={() => handleUpdateRedemptionStatus("completed")}
+              variant="default"
+            >
+              Mark as Completed
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

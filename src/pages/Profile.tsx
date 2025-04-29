@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Card,
@@ -16,23 +17,53 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/sonner";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Upload } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
+  const [dateOfBirth, setDateOfBirth] = useState(user?.dateOfBirth || "");
+  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
+  const [gender, setGender] = useState(user?.gender || "");
+  const [address, setAddress] = useState(user?.address || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // Check if redirected from registration
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('newRegistration') === 'true') {
+      setIsEditing(true);
+      toast.info("Please complete your profile information");
+    }
+  }, [location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      await updateProfile({ name, email, profileImage });
+      await updateProfile({ 
+        name, 
+        email, 
+        profileImage,
+        dateOfBirth,
+        phoneNumber,
+        gender,
+        address
+      });
       setIsEditing(false);
       toast.success("Profile updated successfully");
     } catch (error) {
@@ -63,7 +94,7 @@ const Profile = () => {
     reader.onloadend = () => {
       const result = reader.result as string;
       setPreviewImage(result);
-      setProfileImage(result); // Will be replaced with actual file upload to Supabase later
+      setProfileImage(result);
     };
     reader.readAsDataURL(file);
   };
@@ -169,6 +200,96 @@ const Profile = () => {
 
               <Separator />
 
+              {/* Additional Personal Information */}
+              <div>
+                <h3 className="text-lg font-medium mb-4">Personal Information</h3>
+                {isEditing ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="dob">Date of Birth</Label>
+                      <Input
+                        id="dob"
+                        type="date"
+                        value={dateOfBirth}
+                        onChange={(e) => setDateOfBirth(e.target.value)}
+                        disabled={isSubmitting}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        disabled={isSubmitting}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="gender">Gender</Label>
+                      <Select 
+                        value={gender} 
+                        onValueChange={setGender}
+                        disabled={isSubmitting}
+                      >
+                        <SelectTrigger id="gender" className="mt-1">
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                          <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="address">Address</Label>
+                      <Input
+                        id="address"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        disabled={isSubmitting}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Date of Birth
+                      </div>
+                      <div>{user?.dateOfBirth || "Not set"}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Phone Number
+                      </div>
+                      <div>{user?.phoneNumber || "Not set"}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Gender
+                      </div>
+                      <div className="capitalize">
+                        {user?.gender?.replace("_", " ") || "Not set"}
+                      </div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Address
+                      </div>
+                      <div>{user?.address || "Not set"}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
               {/* Account Details */}
               <div>
                 <h3 className="text-lg font-medium">Account Details</h3>
@@ -198,6 +319,10 @@ const Profile = () => {
                     setIsEditing(false);
                     setName(user?.name || "");
                     setEmail(user?.email || "");
+                    setDateOfBirth(user?.dateOfBirth || "");
+                    setPhoneNumber(user?.phoneNumber || "");
+                    setGender(user?.gender || "");
+                    setAddress(user?.address || "");
                     setPreviewImage(null);
                   }}
                   disabled={isSubmitting}

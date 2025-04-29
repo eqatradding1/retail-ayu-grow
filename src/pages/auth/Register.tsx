@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "react-toastify";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -13,29 +13,33 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate passwords match
-    if (password !== confirmPassword) {
-      setPasswordError("Passwords do not match");
-      return;
-    }
-    
-    setIsSubmitting(true);
+    setLoading(true);
+    setError("");
     
     try {
+      if (password !== confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+      
       await register(email, password, name);
-      navigate("/dashboard", { replace: true });
-    } catch (error) {
-      console.error("Registration failed:", error);
-      // Error toast is shown by the auth context
+      toast.success("Registration successful!");
+      
+      // Redirect to profile page with query parameter
+      navigate("/profile?newRegistration=true");
+    } catch (err: any) {
+      console.error("Registration failed:", err);
+      setError(err.message || "Registration failed");
+      toast.error(err.message || "Registration failed");
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 

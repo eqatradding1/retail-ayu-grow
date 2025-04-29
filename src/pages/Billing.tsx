@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +36,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
-import { Search, Plus, FileText, Printer, ArrowUpDown } from "lucide-react";
+import { Search, FileText, Printer, ArrowUpDown } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Define invoice types
@@ -70,15 +71,6 @@ const customers = [
   { id: "3", name: "Robert Johnson" },
   { id: "4", name: "Sarah Williams" },
   { id: "5", name: "Michael Brown" },
-];
-
-// Mock product data for dropdowns
-const products = [
-  { id: "1", name: "Rice", unitPrice: 18000 },
-  { id: "2", name: "Sugar", unitPrice: 14000 },
-  { id: "3", name: "Cooking Oil", unitPrice: 25000 },
-  { id: "4", name: "Flour", unitPrice: 12000 },
-  { id: "5", name: "Salt", unitPrice: 5000 },
 ];
 
 // Mock invoice data
@@ -169,30 +161,11 @@ export default function Billing() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   
   // Dialog states
-  const [isAddInvoiceDialogOpen, setIsAddInvoiceDialogOpen] = useState(false);
   const [isViewInvoiceDialogOpen, setIsViewInvoiceDialogOpen] = useState(false);
   const [isRecordPaymentDialogOpen, setIsRecordPaymentDialogOpen] = useState(false);
   
   const [currentInvoice, setCurrentInvoice] = useState<Invoice | null>(null);
   const [newPaymentAmount, setNewPaymentAmount] = useState<number>(0);
-  
-  // New invoice form state
-  const [newInvoice, setNewInvoice] = useState<Partial<Invoice>>({
-    customerId: "",
-    date: new Date().toISOString().split("T")[0],
-    dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    items: [],
-    taxRate: 0.11,
-    status: "draft",
-    notes: ""
-  });
-  
-  const [newInvoiceItem, setNewInvoiceItem] = useState<Partial<InvoiceItem>>({
-    id: "",
-    name: "",
-    quantity: 1,
-    unitPrice: 0
-  });
 
   // Calculate invoice stats
   const totalOutstanding = invoices
@@ -256,104 +229,6 @@ export default function Billing() {
     }
   };
 
-  // Calculate the next invoice number
-  const getNextInvoiceNumber = () => {
-    const maxNumber = invoices.reduce((max, inv) => {
-      const num = parseInt(inv.invoiceNumber.replace("INV-2023-", ""));
-      return Math.max(max, num);
-    }, 0);
-    return `INV-2023-${String(maxNumber + 1).padStart(3, '0')}`;
-  };
-
-  // Add product to new invoice
-  const addProductToInvoice = () => {
-    if (!newInvoiceItem.id || !newInvoiceItem.name || newInvoiceItem.quantity <= 0) return;
-    
-    setNewInvoice({
-      ...newInvoice,
-      items: [...(newInvoice.items || []), {
-        id: Date.now().toString(),
-        name: newInvoiceItem.name,
-        quantity: newInvoiceItem.quantity || 1,
-        unitPrice: newInvoiceItem.unitPrice || 0
-      }]
-    });
-    
-    setNewInvoiceItem({
-      id: "",
-      name: "",
-      quantity: 1,
-      unitPrice: 0
-    });
-  };
-
-  // Remove product from new invoice
-  const removeProductFromInvoice = (itemId: string) => {
-    setNewInvoice({
-      ...newInvoice,
-      items: newInvoice.items?.filter(item => item.id !== itemId)
-    });
-  };
-
-  // Calculate invoice totals
-  const calculateInvoiceTotals = () => {
-    if (!newInvoice.items || newInvoice.items.length === 0) return { subtotal: 0, taxAmount: 0, total: 0 };
-    
-    const subtotal = newInvoice.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-    const taxAmount = subtotal * (newInvoice.taxRate || 0.11);
-    const total = subtotal + taxAmount;
-    
-    return { subtotal, taxAmount, total };
-  };
-
-  // Create new invoice
-  const handleCreateInvoice = () => {
-    if (!newInvoice.customerId || !newInvoice.items || newInvoice.items.length === 0) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-    
-    const customer = customers.find(c => c.id === newInvoice.customerId);
-    if (!customer) return;
-    
-    const { subtotal, taxAmount, total } = calculateInvoiceTotals();
-    
-    // Fixed type issue: Ensure status is one of the allowed values, not just any string
-    const newStatus = newInvoice.status as "draft" | "pending" | "paid" | "overdue" | "cancelled";
-    
-    const invoice: Invoice = {
-      id: Date.now().toString(),
-      invoiceNumber: getNextInvoiceNumber(),
-      customerId: newInvoice.customerId,
-      customerName: customer.name,
-      date: newInvoice.date || new Date().toISOString().split("T")[0],
-      dueDate: newInvoice.dueDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      items: newInvoice.items,
-      subtotal,
-      taxRate: newInvoice.taxRate || 0.11,
-      taxAmount,
-      total,
-      amountPaid: 0,
-      status: newStatus,
-      notes: newInvoice.notes
-    };
-    
-    setInvoices([...invoices, invoice]);
-    setIsAddInvoiceDialogOpen(false);
-    toast.success("Invoice created successfully");
-    
-    // Reset new invoice form
-    setNewInvoice({
-      customerId: "",
-      date: new Date().toISOString().split("T")[0],
-      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      items: [],
-      taxRate: 0.11,
-      status: "draft",
-      notes: ""
-    });
-  };
-
   // Record payment for an invoice
   const handleRecordPayment = () => {
     if (!currentInvoice || newPaymentAmount <= 0) return;
@@ -367,7 +242,9 @@ export default function Billing() {
     const updatedInvoice = {
       ...currentInvoice,
       amountPaid: currentInvoice.amountPaid + newPaymentAmount,
-      status: currentInvoice.amountPaid + newPaymentAmount >= currentInvoice.total ? "paid" : "pending"
+      status: currentInvoice.amountPaid + newPaymentAmount >= currentInvoice.total ? 
+        "paid" as const : 
+        "pending" as const
     };
     
     const updatedInvoices = invoices.map(inv =>
@@ -394,6 +271,13 @@ export default function Billing() {
 
   return (
     <div className="container mx-auto py-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold">Customer Credit</h1>
+        <p className="text-muted-foreground">
+          Manage customer credit payments and outstanding balances
+        </p>
+      </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card>
           <CardHeader className="pb-2">
@@ -445,14 +329,11 @@ export default function Billing() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Invoices</CardTitle>
+              <CardTitle>Customer Credit Records</CardTitle>
               <CardDescription>
-                Manage customer invoices and payments
+                Track credit purchases and payments from customers
               </CardDescription>
             </div>
-            <Button onClick={() => setIsAddInvoiceDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Create Invoice
-            </Button>
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
@@ -474,7 +355,7 @@ export default function Billing() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
               <Input 
                 type="search" 
-                placeholder="Search invoices..." 
+                placeholder="Search by customer name or invoice..." 
                 className="pl-8 w-full" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -528,7 +409,7 @@ export default function Billing() {
               {filteredInvoices.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-4 text-muted-foreground">
-                    No invoices found
+                    No credit records found
                   </TableCell>
                 </TableRow>
               ) : (
@@ -579,225 +460,11 @@ export default function Billing() {
         </CardContent>
       </Card>
 
-      {/* Create Invoice Dialog */}
-      <Dialog open={isAddInvoiceDialogOpen} onOpenChange={setIsAddInvoiceDialogOpen}>
-        <DialogContent className="sm:max-w-[700px]">
-          <DialogHeader>
-            <DialogTitle>Create New Invoice</DialogTitle>
-            <DialogDescription>
-              Create a new invoice for a customer.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="customer">Customer</Label>
-                <Select
-                  value={newInvoice.customerId}
-                  onValueChange={(value) => setNewInvoice({...newInvoice, customerId: value})}
-                >
-                  <SelectTrigger id="customer">
-                    <SelectValue placeholder="Select customer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="invoice-status">Status</Label>
-                <Select
-                  value={newInvoice.status}
-                  onValueChange={(value) => setNewInvoice({
-                    ...newInvoice, 
-                    status: value as "draft" | "pending" | "paid" | "overdue" | "cancelled"
-                  })}
-                >
-                  <SelectTrigger id="invoice-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="invoice-date">Invoice Date</Label>
-                <Input 
-                  id="invoice-date" 
-                  type="date"
-                  value={newInvoice.date}
-                  onChange={(e) => setNewInvoice({...newInvoice, date: e.target.value})}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="due-date">Due Date</Label>
-                <Input 
-                  id="due-date" 
-                  type="date"
-                  value={newInvoice.dueDate}
-                  onChange={(e) => setNewInvoice({...newInvoice, dueDate: e.target.value})}
-                />
-              </div>
-            </div>
-
-            {/* Invoice Items Section */}
-            <div className="border rounded-md p-4">
-              <h3 className="font-medium mb-2">Invoice Items</h3>
-              
-              {/* Item Add Form */}
-              <div className="grid grid-cols-12 gap-2 mb-4">
-                <div className="col-span-5">
-                  <Select
-                    value={newInvoiceItem.id}
-                    onValueChange={(value) => {
-                      const product = products.find(p => p.id === value);
-                      if (product) {
-                        setNewInvoiceItem({
-                          ...newInvoiceItem,
-                          id: product.id,
-                          name: product.name,
-                          unitPrice: product.unitPrice
-                        });
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-2">
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="Qty"
-                    value={newInvoiceItem.quantity || ""}
-                    onChange={(e) => setNewInvoiceItem({
-                      ...newInvoiceItem,
-                      quantity: parseInt(e.target.value)
-                    })}
-                  />
-                </div>
-                <div className="col-span-3">
-                  <Input
-                    type="number"
-                    placeholder="Unit Price"
-                    value={newInvoiceItem.unitPrice || ""}
-                    onChange={(e) => setNewInvoiceItem({
-                      ...newInvoiceItem,
-                      unitPrice: parseFloat(e.target.value)
-                    })}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Button 
-                    onClick={addProductToInvoice} 
-                    className="w-full"
-                    disabled={!newInvoiceItem.id || !newInvoiceItem.quantity}
-                  >
-                    Add
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Items Table */}
-              {newInvoice.items && newInvoice.items.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Item</TableHead>
-                      <TableHead>Quantity</TableHead>
-                      <TableHead>Unit Price</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {newInvoice.items.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>{item.name}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
-                        <TableCell>{item.unitPrice.toLocaleString()}</TableCell>
-                        <TableCell>{(item.quantity * item.unitPrice).toLocaleString()}</TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeProductFromInvoice(item.id)}
-                          >
-                            Remove
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-4 text-muted-foreground">
-                  No items added yet
-                </div>
-              )}
-              
-              {/* Totals */}
-              {newInvoice.items && newInvoice.items.length > 0 && (
-                <div className="mt-4 border-t pt-4 space-y-2">
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>{calculateInvoiceTotals().subtotal.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Tax ({(newInvoice.taxRate || 0.11) * 100}%)</span>
-                    <span>{calculateInvoiceTotals().taxAmount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between font-bold">
-                    <span>Total</span>
-                    <span>{calculateInvoiceTotals().total.toLocaleString()}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="invoice-notes">Notes (Optional)</Label>
-              <Textarea 
-                id="invoice-notes" 
-                value={newInvoice.notes || ""}
-                onChange={(e) => setNewInvoice({...newInvoice, notes: e.target.value})}
-                placeholder="Additional notes for the customer"
-                rows={2}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddInvoiceDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateInvoice}>Create Invoice</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* View Invoice Dialog */}
       <Dialog open={isViewInvoiceDialogOpen} onOpenChange={setIsViewInvoiceDialogOpen}>
         <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
-            <DialogTitle>Invoice Details</DialogTitle>
+            <DialogTitle>Credit Record Details</DialogTitle>
             <DialogDescription>
               {currentInvoice?.invoiceNumber}
             </DialogDescription>
@@ -806,7 +473,7 @@ export default function Billing() {
             <div className="py-4">
               <div className="flex justify-between mb-6">
                 <div>
-                  <h3 className="font-bold">Invoice To:</h3>
+                  <h3 className="font-bold">Customer:</h3>
                   <p>{currentInvoice.customerName}</p>
                 </div>
                 <div className="text-right">
