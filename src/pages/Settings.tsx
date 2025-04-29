@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +29,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { 
   User, 
   Building, 
@@ -799,24 +806,20 @@ export default function Settings() {
         {/* Users Tab */}
         <TabsContent value="users">
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>User Accounts</CardTitle>
-                  <CardDescription>
-                    Manage user access to the system
-                  </CardDescription>
-                </div>
-                <Button onClick={() => setIsAddUserDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> Add User
-                </Button>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>Manage user accounts and permissions</CardDescription>
               </div>
+              <Button onClick={() => setIsAddUserDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Add User
+              </Button>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User</TableHead>
+                    <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
@@ -825,20 +828,19 @@ export default function Settings() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {users.map(user => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{user.role}</TableCell>
                       <TableCell>
-                        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {user.active ? 'Active' : 'Inactive'}
+                        <div className="flex items-center">
+                          <div className={`w-3 h-3 rounded-full mr-2 ${user.active ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                          {user.active ? "Active" : "Inactive"}
                         </div>
                       </TableCell>
-                      <TableCell>{user.lastLogin || 'Never'}</TableCell>
-                      <TableCell className="text-right space-x-1">
+                      <TableCell>{user.lastLogin || "Never"}</TableCell>
+                      <TableCell className="text-right">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -856,7 +858,6 @@ export default function Settings() {
                             setCurrentUser(user);
                             setIsDeleteUserDialogOpen(true);
                           }}
-                          disabled={user.id === "1"} // Prevent deleting admin
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -872,18 +873,14 @@ export default function Settings() {
         {/* Roles Tab */}
         <TabsContent value="roles">
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>User Roles</CardTitle>
-                  <CardDescription>
-                    Configure role-based permissions
-                  </CardDescription>
-                </div>
-                <Button onClick={() => setIsAddRoleDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Role
-                </Button>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Role Management</CardTitle>
+                <CardDescription>Define user roles and permissions</CardDescription>
               </div>
+              <Button onClick={() => setIsAddRoleDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Add Role
+              </Button>
             </CardHeader>
             <CardContent>
               <Table>
@@ -895,20 +892,17 @@ export default function Settings() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {roles.map((role) => (
+                  {roles.map(role => (
                     <TableRow key={role.id}>
                       <TableCell className="font-medium">{role.name}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {Object.entries(role.permissions)
-                            .filter(([_, value]) => value)
-                            .map(([key, _], index) => (
-                              <div 
-                                key={index} 
-                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
-                              >
-                                {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                              </div>
+                            .filter(([_, hasPermission]) => hasPermission)
+                            .map(([perm, _], index) => (
+                              <span key={index} className="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded">
+                                {perm.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                              </span>
                             ))}
                         </div>
                       </TableCell>
@@ -920,7 +914,6 @@ export default function Settings() {
                             setCurrentRole(role);
                             setIsEditRoleDialogOpen(true);
                           }}
-                          disabled={role.name === "Owner"} // Prevent editing owner role
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>

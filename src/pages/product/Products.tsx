@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -600,15 +599,181 @@ export default function Products() {
             
             {/* Similar content to Add Product dialog, but with current values */}
             <TabsContent value="basics">
-              {/* Basics content - same fields as add dialog */}
+              <div className="grid gap-4 py-4">
+                <div className="flex items-center gap-4">
+                  <div className="grid flex-1 gap-2">
+                    <Label htmlFor="name">Product Name</Label>
+                    <Input
+                      id="name"
+                      {...form.register("name")}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="grid flex-1 gap-2">
+                    <Label htmlFor="barcode">Barcode</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="barcode"
+                        {...form.register("barcode")}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleScanBarcode}
+                      >
+                        <Barcode className="h-4 w-4 mr-2" />
+                        Scan
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="category">Category</Label>
+                  <Select 
+                    onValueChange={(value) => form.setValue("categoryId", value)}
+                    defaultValue={form.getValues("categoryId")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(category => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="unit">Unit</Label>
+                  <Select 
+                    onValueChange={(value) => form.setValue("unitId", value)}
+                    defaultValue={form.getValues("unitId")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {units.map(unit => (
+                        <SelectItem key={unit.id} value={unit.id}>
+                          {unit.name} ({unit.description})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    {...form.register("description")}
+                    rows={3}
+                  />
+                </div>
+              </div>
             </TabsContent>
             
             <TabsContent value="pricing">
-              {/* Pricing content - same fields as add dialog */}
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="costPrice">Cost Price</Label>
+                    <Input
+                      id="costPrice"
+                      type="number"
+                      {...form.register("costPrice", { valueAsNumber: true })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="retailPrice">Retail Price</Label>
+                    <Input
+                      id="retailPrice"
+                      type="number"
+                      {...form.register("retailPrice", { valueAsNumber: true })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <div className="flex justify-between items-center">
+                    <Label>Price Levels (Wholesale)</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addPriceLevel}>
+                      Add Level
+                    </Button>
+                  </div>
+                  
+                  <div className="border rounded-md p-3">
+                    {priceLevels.map((level, index) => (
+                      <div key={level.id} className="flex gap-4 items-center mb-2">
+                        <div className="grid gap-1 flex-1">
+                          <Label className="text-xs">Min. Quantity</Label>
+                          <Input
+                            type="number"
+                            value={level.minQuantity}
+                            onChange={(e) => updatePriceLevel(index, 'minQuantity', Number(e.target.value))}
+                          />
+                        </div>
+                        <div className="grid gap-1 flex-1">
+                          <Label className="text-xs">Price</Label>
+                          <Input
+                            type="number"
+                            value={level.price}
+                            onChange={(e) => updatePriceLevel(index, 'price', Number(e.target.value))}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="mt-4"
+                          onClick={() => removePriceLevel(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="stockQuantity">Stock Quantity</Label>
+                    <Input
+                      id="stockQuantity"
+                      type="number"
+                      {...form.register("stockQuantity", { valueAsNumber: true })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="minStockLevel">Min Stock Level</Label>
+                    <Input
+                      id="minStockLevel"
+                      type="number"
+                      {...form.register("minStockLevel", { valueAsNumber: true })}
+                    />
+                  </div>
+                </div>
+              </div>
             </TabsContent>
             
             <TabsContent value="additional">
-              {/* Additional content - same fields as add dialog */}
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="loyaltyPoints">Loyalty Points</Label>
+                  <Input
+                    id="loyaltyPoints"
+                    type="number"
+                    {...form.register("loyaltyPoints", { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
 

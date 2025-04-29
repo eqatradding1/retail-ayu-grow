@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -319,6 +318,9 @@ export default function Billing() {
     
     const { subtotal, taxAmount, total } = calculateInvoiceTotals();
     
+    // Fixed type issue: Ensure status is one of the allowed values, not just any string
+    const newStatus = newInvoice.status as "draft" | "pending" | "paid" | "overdue" | "cancelled";
+    
     const invoice: Invoice = {
       id: Date.now().toString(),
       invoiceNumber: getNextInvoiceNumber(),
@@ -332,7 +334,7 @@ export default function Billing() {
       taxAmount,
       total,
       amountPaid: 0,
-      status: newInvoice.status as "draft" | "pending" | "paid" | "overdue" | "cancelled",
+      status: newStatus,
       notes: newInvoice.notes
     };
     
