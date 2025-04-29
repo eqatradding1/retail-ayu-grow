@@ -1,319 +1,94 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-} from "recharts";
-import { ShoppingCart, Package, Users, CreditCard } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RecentSales } from "@/components/dashboard/RecentSales";
+import { Users, ShoppingCart, TrendingUp, Activity, BarChart } from "lucide-react";
 
-// Sample data
-const recentSalesData = [
-  { name: "Mon", sales: 4000 },
-  { name: "Tue", sales: 3000 },
-  { name: "Wed", sales: 5000 },
-  { name: "Thu", sales: 2780 },
-  { name: "Fri", sales: 1890 },
-  { name: "Sat", sales: 6390 },
-  { name: "Sun", sales: 3490 },
+// Mock data for quick stats
+const mockStats = [
+  {
+    title: "Total Revenue",
+    value: "Rp 15,850,000",
+    change: "+12.5%",
+    trend: "up",
+    icon: <TrendingUp className="h-4 w-4 text-green-600" />,
+  },
+  {
+    title: "Customers",
+    value: "428",
+    change: "+5.2%",
+    trend: "up",
+    icon: <Users className="h-4 w-4 text-blue-600" />,
+  },
+  {
+    title: "Average Order",
+    value: "Rp 125,000",
+    change: "-2.1%",
+    trend: "down",
+    icon: <ShoppingCart className="h-4 w-4 text-amber-600" />,
+  },
+  {
+    title: "Profit Margin",
+    value: "24%",
+    change: "+1.2%",
+    trend: "up",
+    icon: <BarChart className="h-4 w-4 text-purple-600" />,
+  },
 ];
 
-const inventoryStatusData = [
-  { name: "In Stock", value: 240, color: "#7E69AB" },
-  { name: "Low Stock", value: 35, color: "#F7B538" },
-  { name: "Out of Stock", value: 15, color: "#EA384C" },
-];
-
-const salesByHourData = [
-  { time: "8AM", sales: 1200 },
-  { time: "10AM", sales: 1800 },
-  { time: "12PM", sales: 2400 },
-  { time: "2PM", sales: 1800 },
-  { time: "4PM", sales: 2200 },
-  { time: "6PM", sales: 2600 },
-  { time: "8PM", sales: 1800 },
-];
-
-// Display a summary card for key metrics
-const SummaryCard = ({
-  title,
-  value,
-  icon: Icon,
-  change,
-  changeType,
-}: {
-  title: string;
-  value: string;
-  icon: React.ElementType;
-  change: string;
-  changeType: "increase" | "decrease" | "neutral";
-}) => (
-  <Card>
-    <CardContent className="p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <h3 className="text-2xl font-bold mt-1">{value}</h3>
-        </div>
-        <div
-          className={`w-12 h-12 rounded-full flex items-center justify-center ${
-            changeType === "increase"
-              ? "bg-green-100 text-green-600"
-              : changeType === "decrease"
-              ? "bg-red-100 text-red-600"
-              : "bg-blue-100 text-blue-600"
-          }`}
-        >
-          <Icon className="h-6 w-6" />
-        </div>
-      </div>
-      <div
-        className={`mt-4 text-sm ${
-          changeType === "increase"
-            ? "text-green-600"
-            : changeType === "decrease"
-            ? "text-red-600"
-            : "text-blue-600"
-        }`}
-      >
-        {change}
-      </div>
-    </CardContent>
-  </Card>
-);
-
-const Dashboard = () => {
-  const { user } = useAuth();
-  const userRole = user?.role || "cashier";
-
+export default function Dashboard() {
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <div className="flex space-x-2">
-          <Button asChild>
-            <Link to="/pos" className="retailayu-gradient">
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              <span>POS</span>
-            </Link>
-          </Button>
-          {userRole === "owner" && (
-            <Button variant="outline">Generate Reports</Button>
-          )}
-        </div>
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard
-          title="Total Sales"
-          value="Rp 8,456,780"
-          icon={ShoppingCart}
-          change="+12.5% from last week"
-          changeType="increase"
-        />
-        <SummaryCard
-          title="Inventory Items"
-          value="290"
-          icon={Package}
-          change="15 items low on stock"
-          changeType="neutral"
-        />
-        <SummaryCard
-          title="Customers"
-          value="1,245"
-          icon={Users}
-          change="+8.2% from last month"
-          changeType="increase"
-        />
-        <SummaryCard
-          title="Pending Payments"
-          value="Rp 1,245,000"
-          icon={CreditCard}
-          change="4 payments due today"
-          changeType="decrease"
-        />
-      </div>
-
-      {/* Recent sales chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Sales</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={recentSalesData}
-                margin={{
-                  top: 20,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
+    <div className="container mx-auto py-6">
+      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+      
+      {/* Quick stats cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+        {mockStats.map((stat, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+              {stat.icon}
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <p 
+                className={`text-xs ${
+                  stat.trend === "up" ? "text-green-600" : "text-red-600"
+                } flex items-center`}
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip
-                  formatter={(value) => [`Rp ${value.toLocaleString()}`, "Sales"]}
-                />
-                <Bar
-                  dataKey="sales"
-                  fill="#9b87f5"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Inventory Status */}
-        <Card>
+                {stat.change}
+                <span className="ml-1">from last month</span>
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
+        {/* Analytics and charts would go here */}
+        <Card className="col-span-2">
           <CardHeader>
-            <CardTitle>Inventory Status</CardTitle>
+            <CardTitle>Sales Overview</CardTitle>
+            <CardDescription>Monthly revenue for the current year</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-64 flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={inventoryStatusData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={5}
-                    dataKey="value"
-                    label={({ name, percent }) =>
-                      `${name}: ${(percent * 100).toFixed(0)}%`
-                    }
-                  >
-                    {inventoryStatusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value) => [value, "Items"]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            {userRole === "owner" || userRole === "warehouse_admin" ? (
-              <div className="mt-4 text-center">
-                <Button asChild variant="outline">
-                  <Link to="/inventory">Manage Inventory</Link>
-                </Button>
-              </div>
-            ) : null}
+          <CardContent className="h-[300px] flex items-center justify-center bg-muted/10">
+            <p className="text-muted-foreground">Sales chart placeholder</p>
           </CardContent>
         </Card>
-
-        {/* Sales by Hour */}
+        
         <Card>
           <CardHeader>
-            <CardTitle>Sales by Hour (Today)</CardTitle>
+            <CardTitle>Top Selling Products</CardTitle>
+            <CardDescription>Best performers this month</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={salesByHourData}
-                  margin={{
-                    top: 20,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="time" />
-                  <YAxis />
-                  <Tooltip
-                    formatter={(value) => [`Rp ${value.toLocaleString()}`, "Sales"]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="sales"
-                    stroke="#7E69AB"
-                    activeDot={{ r: 8 }}
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+          <CardContent className="h-[300px] flex items-center justify-center bg-muted/10">
+            <p className="text-muted-foreground">Products chart placeholder</p>
           </CardContent>
         </Card>
       </div>
-
-      {/* Recent activities - simplified for this demo */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activities</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center space-x-4 rounded-lg border p-4">
-              <div className="h-9 w-9 rounded-full bg-retailayu-soft-gray flex items-center justify-center">
-                <ShoppingCart className="h-5 w-5 text-retailayu-purple" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  New sale completed: Invoice #INV-2023042
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  15 minutes ago by Sarah Johnson
-                </p>
-              </div>
-              <div className="font-medium">Rp 245,000</div>
-            </div>
-            <div className="flex items-center space-x-4 rounded-lg border p-4">
-              <div className="h-9 w-9 rounded-full bg-retailayu-soft-gray flex items-center justify-center">
-                <Package className="h-5 w-5 text-retailayu-purple" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  Low stock alert: Organic Milk (5 remaining)
-                </p>
-                <p className="text-sm text-muted-foreground">45 minutes ago</p>
-              </div>
-              <Button size="sm" variant="outline">
-                Reorder
-              </Button>
-            </div>
-            <div className="flex items-center space-x-4 rounded-lg border p-4">
-              <div className="h-9 w-9 rounded-full bg-retailayu-soft-gray flex items-center justify-center">
-                <Users className="h-5 w-5 text-retailayu-purple" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  New customer registered: Maria Smith
-                </p>
-                <p className="text-sm text-muted-foreground">2 hours ago</p>
-              </div>
-              <Button size="sm" variant="outline">
-                View
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      
+      {/* Recent sales section */}
+      <RecentSales />
     </div>
   );
-};
-
-export default Dashboard;
+}

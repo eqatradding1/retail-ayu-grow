@@ -33,6 +33,7 @@ import { Search, Plus, Pencil, Trash2, History, QrCode } from "lucide-react";
 // Define Customer type
 interface Customer {
   id: string;
+  code: string;
   name: string;
   phone: string;
   email: string;
@@ -45,10 +46,18 @@ interface Customer {
   qrCode?: string;
 }
 
+// Generate customer code
+const generateCustomerCode = (): string => {
+  const prefix = "CUST";
+  const randomNum = Math.floor(10000 + Math.random() * 90000); // 5-digit number
+  return `${prefix}-${randomNum}`;
+};
+
 // Mock customer data
 const initialCustomers: Customer[] = [
   {
     id: "1",
+    code: "CUST-12345",
     name: "John Doe",
     phone: "555-123-4567",
     email: "john.doe@email.com",
@@ -61,6 +70,7 @@ const initialCustomers: Customer[] = [
   },
   {
     id: "2",
+    code: "CUST-67890",
     name: "Jane Smith",
     phone: "555-987-6543",
     email: "jane.smith@email.com",
@@ -72,6 +82,7 @@ const initialCustomers: Customer[] = [
   },
   {
     id: "3",
+    code: "CUST-24680",
     name: "Robert Johnson",
     phone: "555-456-7890",
     email: "robert.j@email.com",
@@ -96,7 +107,7 @@ export default function Customers() {
   const [isViewQRCodeDialogOpen, setIsViewQRCodeDialogOpen] = useState(false);
   
   const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(null);
-  const [newCustomer, setNewCustomer] = useState<Omit<Customer, "id" | "registeredDate" | "totalSpent" | "loyaltyPoints" | "qrCode">>({
+  const [newCustomer, setNewCustomer] = useState<Omit<Customer, "id" | "code" | "registeredDate" | "totalSpent" | "loyaltyPoints" | "qrCode">>({
     name: "",
     phone: "",
     email: "",
@@ -109,7 +120,8 @@ export default function Customers() {
     ? customers.filter(customer => 
         customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.phone.includes(searchTerm) ||
-        customer.email.toLowerCase().includes(searchTerm.toLowerCase())
+        customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.code.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : customers;
     
@@ -138,24 +150,30 @@ export default function Customers() {
     }
   ];
 
-  // Generate QR Code - For demo we'll just use a placeholder
-  const generateQRCode = (customerId: string) => {
+  // Generate QR Code with customer code and name
+  const generateQRCode = (customer: Customer) => {
+    // Use customer code and name as QR code content
+    const qrContent = `${customer.code}:${customer.name}`;
     // This would normally call an API to generate a QR code
-    // For demo purposes, we'll just return a placeholder URL
-    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=CUSTOMER_ID_${customerId}`;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}`;
   };
 
   // Handle adding a new customer
   const handleAddCustomer = () => {
     const customerId = Date.now().toString();
+    const customerCode = generateCustomerCode();
+    
     const customer: Customer = {
       id: customerId,
+      code: customerCode,
       ...newCustomer,
       loyaltyPoints: 0,
       registeredDate: new Date().toISOString().split("T")[0],
-      totalSpent: 0,
-      qrCode: generateQRCode(customerId)
+      totalSpent: 0
     };
+    
+    // Generate QR code for the new customer
+    customer.qrCode = generateQRCode(customer);
     
     setCustomers([...customers, customer]);
     setIsAddCustomerDialogOpen(false);
@@ -173,8 +191,14 @@ export default function Customers() {
   const handleEditCustomer = () => {
     if (!currentCustomer) return;
     
+    // Regenerate QR code if name has changed
+    const updatedCustomer = {
+      ...currentCustomer,
+      qrCode: generateQRCode(currentCustomer)
+    };
+    
     const updatedCustomers = customers.map(customer =>
-      customer.id === currentCustomer.id ? currentCustomer : customer
+      customer.id === currentCustomer.id ? updatedCustomer : customer
     );
     
     setCustomers(updatedCustomers);
@@ -214,7 +238,7 @@ export default function Customers() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
             <Input 
               type="search" 
-              placeholder="Search customers..." 
+              placeholder="Search by name, phone, email or code..." 
               className="pl-8 w-full" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -225,6 +249,7 @@ export default function Customers() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Code</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Loyalty Points</TableHead>
@@ -236,6 +261,7 @@ export default function Customers() {
             <TableBody>
               {filteredCustomers.map((customer) => (
                 <TableRow key={customer.id}>
+                  <TableCell className="font-mono">{customer.code}</TableCell>
                   <TableCell className="font-medium">{customer.name}</TableCell>
                   <TableCell>
                     <div>{customer.phone}</div>
@@ -263,7 +289,7 @@ export default function Customers() {
                         if (!customer.qrCode) {
                           const updatedCustomer = {
                             ...customer,
-                            qrCode: generateQRCode(customer.id)
+                            qrCode: generateQRCode(customer)
                           };
                           setCurrentCustomer(updatedCustomer);
                         }
@@ -379,6 +405,12 @@ export default function Customers() {
           </DialogHeader>
           {currentCustomer && (
             <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Customer Code</Label>
+                <div className="py-2 px-3 bg-muted rounded text-sm font-mono">
+                  {currentCustomer.code}
+                </div>
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-name">Name</Label>
                 <Input 
@@ -518,8 +550,8 @@ export default function Customers() {
                 />
               </div>
             )}
-            <p className="text-center mt-4 text-sm text-muted-foreground">
-              Customer ID: {currentCustomer?.id}
+            <p className="text-center mt-4 text-sm font-medium">
+              Customer Code: {currentCustomer?.code}
             </p>
             <p className="text-center mt-1 text-sm text-muted-foreground">
               Scan this code at checkout to quickly access customer information.
