@@ -84,9 +84,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(mockUser);
     localStorage.setItem("retailayu_user", JSON.stringify(mockUser));
     setIsLoading(false);
-
-    // Return the new user to allow for redirection
-    return mockUser;
   };
 
   const signOut = () => {
