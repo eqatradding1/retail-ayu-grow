@@ -26,6 +26,13 @@ import { toast } from "@/components/ui/sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Edit, Trash, Check, X, Gift } from "lucide-react";
 import { RedemptionForm } from "@/components/loyalty/RedemptionForm";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 
 // Define types
 interface Reward {
@@ -368,7 +375,7 @@ export default function LoyaltyProgram() {
                       <TableCell>{reward.description}</TableCell>
                       <TableCell>{reward.pointsCost}</TableCell>
                       <TableCell>
-                        <Badge variant={reward.isActive ? "success" : "secondary"}>
+                        <Badge variant={reward.isActive ? "default" : "secondary"}>
                           {reward.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
@@ -443,7 +450,7 @@ export default function LoyaltyProgram() {
                       <TableCell>{rule.pointsAwarded}</TableCell>
                       <TableCell>{rule.condition}</TableCell>
                       <TableCell>
-                        <Badge variant={rule.isActive ? "success" : "secondary"}>
+                        <Badge variant={rule.isActive ? "default" : "secondary"}>
                           {rule.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
@@ -529,9 +536,9 @@ export default function LoyaltyProgram() {
                         <TableCell>
                           <Badge 
                             variant={
-                              redemption.status === "completed" ? "success" :
+                              redemption.status === "completed" ? "default" :
                               redemption.status === "cancelled" ? "destructive" : 
-                              "warning"
+                              "outline"
                             }
                           >
                             {redemption.status.charAt(0).toUpperCase() + redemption.status.slice(1)}
