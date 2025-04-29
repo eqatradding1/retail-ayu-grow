@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/sonner";
 import { 
@@ -45,8 +46,8 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Product, StockTransaction, Supplier } from "@/types/product";
+import EnhancedStockForm from "@/components/inventory/EnhancedStockForm";
+import { Product, StockTransaction, Supplier, ProductVariant } from "@/types/product";
 
 // Mock products data (we'd fetch from supabase in production)
 const initialProducts: Product[] = [
@@ -140,7 +141,7 @@ const initialTransactions: StockTransaction[] = [
 ];
 
 export default function Inventory() {
-  const [products] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
   const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
   const [transactions, setTransactions] = useState<StockTransaction[]>(initialTransactions);
   const [searchTerm, setSearchTerm] = useState("");
@@ -160,16 +161,7 @@ export default function Inventory() {
   
   // Stock transaction dialog states
   const [isAddTransactionDialogOpen, setIsAddTransactionDialogOpen] = useState(false);
-  const [newTransaction, setNewTransaction] = useState<Partial<StockTransaction>>({
-    productId: "",
-    type: "purchase",
-    quantity: 1,
-    unitPrice: 0,
-    supplierId: "",
-    invoiceNumber: "",
-    date: new Date().toISOString(),
-    notes: ""
-  });
+  const [transactionType, setTransactionType] = useState<"purchase" | "sale" | "return" | "adjustment">("purchase");
 
   // Filter suppliers based on search term
   const filteredSuppliers = searchTerm
@@ -246,32 +238,57 @@ export default function Inventory() {
   };
 
   // Handle adding a new stock transaction
-  const handleAddTransaction = () => {
-    const transaction: StockTransaction = {
-      id: Date.now().toString(),
-      productId: newTransaction.productId || "",
-      type: newTransaction.type as "purchase" | "sale" | "return" | "adjustment",
-      quantity: newTransaction.quantity || 0,
-      unitPrice: newTransaction.unitPrice || 0,
-      supplierId: newTransaction.supplierId,
-      invoiceNumber: newTransaction.invoiceNumber,
-      date: newTransaction.date || new Date().toISOString(),
-      notes: newTransaction.notes
-    };
+  const handleAddTransaction = (transaction: StockTransaction) => {
+    // Process variant creation if present
+    if (transaction.variantDetails) {
+      // In a real app, we'd create the variant in the database
+      console.log("Creating variant:", transaction.variantDetails);
+      // For this demo, we don't need to do anything else
+    }
     
+    // Process product price updates if present
+    if (transaction.productPriceUpdate) {
+      const { productId, costPrice, retailPrice } = transaction.productPriceUpdate;
+      // Update product prices
+      setProducts(prevProducts => 
+        prevProducts.map(product => 
+          product.id === productId 
+            ? { ...product, costPrice, retailPrice } 
+            : product
+        )
+      );
+    }
+    
+    // Add the transaction
     setTransactions([...transactions, transaction]);
+    
+    // Update product stock quantity
+    const product = products.find(p => p.id === transaction.productId);
+    if (product) {
+      let newQuantity = product.stockQuantity;
+      
+      if (transaction.type === "purchase") {
+        newQuantity += transaction.quantity;
+      } else if (transaction.type === "sale") {
+        newQuantity -= transaction.quantity;
+      } else if (transaction.type === "return") {
+        newQuantity += transaction.quantity;
+      } else if (transaction.type === "adjustment") {
+        // For adjustment, the quantity is the new value
+        newQuantity = transaction.quantity;
+      }
+      
+      // Update the product stock
+      setProducts(prevProducts => 
+        prevProducts.map(p => 
+          p.id === product.id 
+            ? { ...p, stockQuantity: newQuantity } 
+            : p
+        )
+      );
+    }
+    
     setIsAddTransactionDialogOpen(false);
-    setNewTransaction({
-      productId: "",
-      type: "purchase",
-      quantity: 1,
-      unitPrice: 0,
-      supplierId: "",
-      invoiceNumber: "",
-      date: new Date().toISOString(),
-      notes: ""
-    });
-    toast.success("Stock transaction recorded successfully");
   };
 
   return (
@@ -303,9 +320,25 @@ export default function Inventory() {
                     Record stock purchases, sales, returns and adjustments
                   </CardDescription>
                 </div>
-                <Button onClick={() => setIsAddTransactionDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> Record Movement
-                </Button>
+                <div className="flex gap-2">
+                  <Select 
+                    value={transactionType}
+                    onValueChange={(value: any) => setTransactionType(value)}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Transaction type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="purchase">Purchase</SelectItem>
+                      <SelectItem value="sale">Sale</SelectItem>
+                      <SelectItem value="return">Return</SelectItem>
+                      <SelectItem value="adjustment">Adjustment</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={() => setIsAddTransactionDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Record Movement
+                  </Button>
+                </div>
               </div>
               <div className="relative flex mt-4">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
@@ -611,148 +644,28 @@ export default function Inventory() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Stock Transaction Dialog */}
-      <Dialog open={isAddTransactionDialogOpen} onOpenChange={setIsAddTransactionDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+      {/* Enhanced Stock Transaction Dialog */}
+      <Dialog 
+        open={isAddTransactionDialogOpen} 
+        onOpenChange={setIsAddTransactionDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Record Stock Movement</DialogTitle>
+            <DialogTitle>
+              Record Stock {transactionType.charAt(0).toUpperCase() + transactionType.slice(1)}
+            </DialogTitle>
             <DialogDescription>
-              Record a purchase, sale, return or stock adjustment.
+              Add products to your {transactionType} record
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="transaction-type">Movement Type</Label>
-              <Select 
-                value={newTransaction.type}
-                onValueChange={(value) => setNewTransaction({
-                  ...newTransaction, 
-                  type: value as "purchase" | "sale" | "return" | "adjustment"
-                })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select transaction type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="purchase">Purchase (Stock In)</SelectItem>
-                  <SelectItem value="sale">Sale (Stock Out)</SelectItem>
-                  <SelectItem value="return">Return (Stock In)</SelectItem>
-                  <SelectItem value="adjustment">Stock Adjustment</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="product">Product</Label>
-              <Select 
-                value={newTransaction.productId}
-                onValueChange={(value) => setNewTransaction({...newTransaction, productId: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select product" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map(product => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="quantity">Quantity</Label>
-                <Input 
-                  id="quantity" 
-                  type="number"
-                  value={newTransaction.quantity || ""}
-                  onChange={(e) => setNewTransaction({
-                    ...newTransaction, 
-                    quantity: Number(e.target.value)
-                  })}
-                  min={1}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="unitPrice">Unit Price</Label>
-                <Input 
-                  id="unitPrice" 
-                  type="number"
-                  value={newTransaction.unitPrice || ""}
-                  onChange={(e) => setNewTransaction({
-                    ...newTransaction, 
-                    unitPrice: Number(e.target.value)
-                  })}
-                  min={0}
-                />
-              </div>
-            </div>
-            
-            {(newTransaction.type === "purchase" || newTransaction.type === "return") && (
-              <>
-                <div className="grid gap-2">
-                  <Label htmlFor="supplier">Supplier</Label>
-                  <Select 
-                    value={newTransaction.supplierId || ""}
-                    onValueChange={(value) => setNewTransaction({...newTransaction, supplierId: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select supplier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map(supplier => (
-                        <SelectItem key={supplier.id} value={supplier.id}>
-                          {supplier.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="invoiceNumber">Invoice Number</Label>
-                  <Input 
-                    id="invoiceNumber" 
-                    value={newTransaction.invoiceNumber || ""}
-                    onChange={(e) => setNewTransaction({...newTransaction, invoiceNumber: e.target.value})}
-                    placeholder="e.g., INV-001"
-                  />
-                </div>
-              </>
-            )}
-            
-            <div className="grid gap-2">
-              <Label htmlFor="date">Date</Label>
-              <Input 
-                id="date" 
-                type="date"
-                value={new Date(newTransaction.date || Date.now()).toISOString().split('T')[0]}
-                onChange={(e) => setNewTransaction({
-                  ...newTransaction, 
-                  date: new Date(e.target.value).toISOString()
-                })}
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea 
-                id="notes" 
-                value={newTransaction.notes || ""}
-                onChange={(e) => setNewTransaction({...newTransaction, notes: e.target.value})}
-                placeholder="Additional details about this transaction"
-                rows={2}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddTransactionDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddTransaction}>Record Movement</Button>
-          </DialogFooter>
+          
+          <EnhancedStockForm
+            products={products}
+            suppliers={suppliers}
+            transactionType={transactionType}
+            onSubmit={handleAddTransaction}
+            onCancel={() => setIsAddTransactionDialogOpen(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

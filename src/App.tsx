@@ -31,6 +31,11 @@ import POS from "@/pages/POS";
 // Feature Pages
 import LoyaltyProgram from "@/pages/LoyaltyProgram";
 import Inventory from "@/pages/Inventory";
+import Customers from "@/pages/Customers";
+import Expenses from "@/pages/Expenses";
+import Billing from "@/pages/Billing";
+import Reports from "@/pages/Reports";
+import Settings from "@/pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -65,12 +70,12 @@ const App = () => (
               {/* Main features */}
               <Route path="/pos" element={<POS />} />
               <Route path="/inventory" element={<Inventory />} />
-              <Route path="/customers" element={<ComingSoon />} />
-              <Route path="/billing" element={<ComingSoon />} />
-              <Route path="/expenses" element={<ComingSoon />} />
-              <Route path="/reports" element={<ComingSoon />} />
+              <Route path="/customers" element={<Customers />} />
+              <Route path="/billing" element={<Billing />} />
+              <Route path="/expenses" element={<Expenses />} />
+              <Route path="/reports" element={<Reports />} />
               <Route path="/loyalty" element={<LoyaltyProgram />} />
-              <Route path="/settings" element={<ComingSoon />} />
+              <Route path="/settings" element={<Settings />} />
             </Route>
 
             {/* Utility routes */}
