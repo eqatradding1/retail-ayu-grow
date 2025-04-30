@@ -35,7 +35,6 @@ export interface Product {
   priceLevels: PriceLevel[];
   loyaltyPoints: number;
   imageUrl?: string;
-  expirationDate?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -96,7 +95,6 @@ export interface Customer {
   totalSpent: number;
   lastPurchase?: string;
   notes?: string;
-  customerCode?: string;
 }
 
 export interface PurchaseInvoice {
@@ -120,16 +118,13 @@ export interface SaleInvoice {
   id: string;
   invoiceNumber: string;
   customerId?: string;
-  customerName?: string;
   date: string;
   items: {
     productId: string;
-    productName: string;
     variantId?: string;
     quantity: number;
     unitPrice: number;
     discount?: number;
-    subtotal: number;
   }[];
   subtotal: number;
   taxAmount: number;

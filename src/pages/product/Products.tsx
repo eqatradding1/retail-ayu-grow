@@ -1,5 +1,4 @@
-
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,7 +42,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "@/components/ui/sonner";
-import { Pencil, Trash2, Plus, Barcode, Search, ImagePlus } from "lucide-react";
+import { Pencil, Trash2, Plus, Barcode, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Product, PriceLevel, Category, Unit } from "@/types/product";
 import { useForm } from "react-hook-form";
@@ -69,9 +68,7 @@ const initialProducts: Product[] = [
     ],
     loyaltyPoints: 18,
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    imageUrl: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9",
-    expirationDate: new Date(2025, 5, 30).toISOString()
+    updatedAt: new Date().toISOString()
   },
   {
     id: "2",
@@ -90,8 +87,7 @@ const initialProducts: Product[] = [
     ],
     loyaltyPoints: 14,
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    expirationDate: new Date(2025, 3, 15).toISOString()
+    updatedAt: new Date().toISOString()
   }
 ];
 
@@ -125,8 +121,6 @@ export default function Products() {
     { id: "temp1", minQuantity: 5, price: 0 },
     { id: "temp2", minQuantity: 10, price: 0 },
   ]);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm({
     defaultValues: {
@@ -140,22 +134,8 @@ export default function Products() {
       costPrice: 0,
       retailPrice: 0,
       loyaltyPoints: 0,
-      imageUrl: "",
-      expirationDate: ""
     },
   });
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    
-    if (file) {
-      // In a real app, we would upload this file to a storage service
-      // For now, just create a local URL
-      const localUrl = URL.createObjectURL(file);
-      setImagePreview(localUrl);
-      form.setValue("imageUrl", localUrl);
-    }
-  };
 
   const handleAddProduct = () => {
     // Form validation would go here
@@ -177,8 +157,6 @@ export default function Products() {
       loyaltyPoints: formValues.loyaltyPoints,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      imageUrl: formValues.imageUrl,
-      expirationDate: formValues.expirationDate
     };
     
     setProducts([...products, newProduct]);
@@ -188,40 +166,21 @@ export default function Products() {
       { id: "temp1", minQuantity: 5, price: 0 },
       { id: "temp2", minQuantity: 10, price: 0 },
     ]);
-    setImagePreview(null);
     toast.success("Product added successfully");
   };
 
   const handleEditProduct = () => {
     if (!currentProduct) return;
     
-    const formValues = form.getValues();
-    
-    const updatedProduct = {
-      ...currentProduct,
-      name: formValues.name,
-      barcode: formValues.barcode,
-      description: formValues.description,
-      categoryId: formValues.categoryId,
-      unitId: formValues.unitId,
-      stockQuantity: formValues.stockQuantity,
-      minStockLevel: formValues.minStockLevel,
-      costPrice: formValues.costPrice,
-      retailPrice: formValues.retailPrice,
-      priceLevels: priceLevels,
-      loyaltyPoints: formValues.loyaltyPoints,
-      updatedAt: new Date().toISOString(),
-      imageUrl: formValues.imageUrl,
-      expirationDate: formValues.expirationDate
-    };
-    
     const updatedProducts = products.map((product) =>
-      product.id === currentProduct.id ? updatedProduct : product
+      product.id === currentProduct.id ? {
+        ...currentProduct,
+        updatedAt: new Date().toISOString(),
+      } : product
     );
     
     setProducts(updatedProducts);
     setIsEditDialogOpen(false);
-    setImagePreview(null);
     toast.success("Product updated successfully");
   };
 
@@ -240,8 +199,6 @@ export default function Products() {
   const openEditDialog = (product: Product) => {
     setCurrentProduct(product);
     setPriceLevels(product.priceLevels);
-    setImagePreview(product.imageUrl || null);
-    
     form.reset({
       name: product.name,
       barcode: product.barcode || "",
@@ -253,10 +210,7 @@ export default function Products() {
       costPrice: product.costPrice,
       retailPrice: product.retailPrice,
       loyaltyPoints: product.loyaltyPoints,
-      imageUrl: product.imageUrl || "",
-      expirationDate: product.expirationDate || ""
     });
-    
     setIsEditDialogOpen(true);
   };
 
@@ -311,18 +265,6 @@ export default function Products() {
     return units.find(unit => unit.id === unitId)?.name || "Unknown";
   };
 
-  const triggerFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  // Format expiration date for display
-  const formatExpirationDate = (dateString: string | undefined) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
-  };
-
   return (
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
@@ -330,7 +272,6 @@ export default function Products() {
         <Button
           onClick={() => {
             form.reset();
-            setImagePreview(null);
             setPriceLevels([
               { id: "temp1", minQuantity: 5, price: 0 },
               { id: "temp2", minQuantity: 10, price: 0 },
@@ -365,31 +306,18 @@ export default function Products() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Image</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Unit</TableHead>
                 <TableHead>Stock</TableHead>
                 <TableHead>Price</TableHead>
-                <TableHead>Expires</TableHead>
+                <TableHead>Points</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProducts.map((product) => (
                 <TableRow key={product.id}>
-                  <TableCell>
-                    {product.imageUrl ? (
-                      <img 
-                        src={product.imageUrl} 
-                        alt={product.name} 
-                        className="w-12 h-12 object-cover rounded-md"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 bg-gray-100 flex items-center justify-center rounded-md">
-                        <ImagePlus size={16} className="text-gray-400" />
-                      </div>
-                    )}
-                  </TableCell>
                   <TableCell className="font-medium">
                     <div>
                       {product.name}
@@ -401,9 +329,10 @@ export default function Products() {
                     </div>
                   </TableCell>
                   <TableCell>{getCategoryName(product.categoryId)}</TableCell>
+                  <TableCell>{getUnitName(product.unitId)}</TableCell>
                   <TableCell>
                     <div className={`${product.stockQuantity <= product.minStockLevel ? "text-red-500" : ""}`}>
-                      {product.stockQuantity} {getUnitName(product.unitId)}
+                      {product.stockQuantity}
                       {product.stockQuantity <= product.minStockLevel && (
                         <div className="text-xs">Low stock</div>
                       )}
@@ -419,9 +348,7 @@ export default function Products() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    {formatExpirationDate(product.expirationDate)}
-                  </TableCell>
+                  <TableCell>{product.loyaltyPoints}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"
@@ -467,73 +394,33 @@ export default function Products() {
 
             <TabsContent value="basics">
               <div className="grid gap-4 py-4">
-                <div className="flex gap-4">
-                  <div className="w-1/3 flex flex-col items-center">
-                    <div 
-                      className={`w-full aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 overflow-hidden ${imagePreview ? 'border-0' : 'border-gray-300'}`}
-                      onClick={triggerFileInput}
-                    >
-                      {imagePreview ? (
-                        <img 
-                          src={imagePreview} 
-                          alt="Product preview" 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <>
-                          <ImagePlus className="h-10 w-10 text-gray-400" />
-                          <span className="text-sm text-gray-500 mt-2">Upload Image</span>
-                        </>
-                      )}
-                    </div>
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      accept="image/*"
-                      onChange={handleFileChange}
+                <div className="flex items-center gap-4">
+                  <div className="grid flex-1 gap-2">
+                    <Label htmlFor="name">Product Name</Label>
+                    <Input
+                      id="name"
+                      {...form.register("name")}
                     />
-                    {imagePreview && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="mt-2"
-                        onClick={() => {
-                          setImagePreview(null);
-                          form.setValue("imageUrl", "");
-                        }}
-                      >
-                        Remove Image
-                      </Button>
-                    )}
                   </div>
-                  <div className="w-2/3">
-                    <div className="grid gap-4">
-                      <div>
-                        <Label htmlFor="name">Product Name</Label>
-                        <Input
-                          id="name"
-                          {...form.register("name")}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="barcode">Barcode</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="barcode"
-                            {...form.register("barcode")}
-                            className="flex-1"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleScanBarcode}
-                          >
-                            <Barcode className="h-4 w-4 mr-2" />
-                            Scan
-                          </Button>
-                        </div>
-                      </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="grid flex-1 gap-2">
+                    <Label htmlFor="barcode">Barcode</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="barcode"
+                        {...form.register("barcode")}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleScanBarcode}
+                      >
+                        <Barcode className="h-4 w-4 mr-2" />
+                        Scan
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -678,15 +565,6 @@ export default function Products() {
                     id="loyaltyPoints"
                     type="number"
                     {...form.register("loyaltyPoints", { valueAsNumber: true })}
-                  />
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="expirationDate">Expiration Date</Label>
-                  <Input
-                    id="expirationDate"
-                    type="date"
-                    {...form.register("expirationDate")}
                   />
                 </div>
               </div>
@@ -719,75 +597,36 @@ export default function Products() {
               <TabsTrigger value="additional">Additional Info</TabsTrigger>
             </TabsList>
             
+            {/* Similar content to Add Product dialog, but with current values */}
             <TabsContent value="basics">
               <div className="grid gap-4 py-4">
-                <div className="flex gap-4">
-                  <div className="w-1/3 flex flex-col items-center">
-                    <div 
-                      className={`w-full aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 overflow-hidden ${imagePreview ? 'border-0' : 'border-gray-300'}`}
-                      onClick={triggerFileInput}
-                    >
-                      {imagePreview ? (
-                        <img 
-                          src={imagePreview} 
-                          alt="Product preview" 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <>
-                          <ImagePlus className="h-10 w-10 text-gray-400" />
-                          <span className="text-sm text-gray-500 mt-2">Upload Image</span>
-                        </>
-                      )}
-                    </div>
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      accept="image/*"
-                      onChange={handleFileChange}
+                <div className="flex items-center gap-4">
+                  <div className="grid flex-1 gap-2">
+                    <Label htmlFor="name">Product Name</Label>
+                    <Input
+                      id="name"
+                      {...form.register("name")}
                     />
-                    {imagePreview && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="mt-2"
-                        onClick={() => {
-                          setImagePreview(null);
-                          form.setValue("imageUrl", "");
-                        }}
-                      >
-                        Remove Image
-                      </Button>
-                    )}
                   </div>
-                  <div className="w-2/3">
-                    <div className="grid gap-4">
-                      <div>
-                        <Label htmlFor="name">Product Name</Label>
-                        <Input
-                          id="name"
-                          {...form.register("name")}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="barcode">Barcode</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="barcode"
-                            {...form.register("barcode")}
-                            className="flex-1"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleScanBarcode}
-                          >
-                            <Barcode className="h-4 w-4 mr-2" />
-                            Scan
-                          </Button>
-                        </div>
-                      </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="grid flex-1 gap-2">
+                    <Label htmlFor="barcode">Barcode</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="barcode"
+                        {...form.register("barcode")}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleScanBarcode}
+                      >
+                        <Barcode className="h-4 w-4 mr-2" />
+                        Scan
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -932,15 +771,6 @@ export default function Products() {
                     id="loyaltyPoints"
                     type="number"
                     {...form.register("loyaltyPoints", { valueAsNumber: true })}
-                  />
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="expirationDate">Expiration Date</Label>
-                  <Input
-                    id="expirationDate"
-                    type="date"
-                    {...form.register("expirationDate")}
                   />
                 </div>
               </div>
