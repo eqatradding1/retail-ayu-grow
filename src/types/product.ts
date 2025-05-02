@@ -37,6 +37,8 @@ export interface Product {
   imageUrl?: string;
   createdAt: string;
   updatedAt: string;
+  // Added fields that might be used elsewhere
+  expirationDate?: string;
 }
 
 export interface ProductVariant {
@@ -95,6 +97,7 @@ export interface Customer {
   totalSpent: number;
   lastPurchase?: string;
   notes?: string;
+  code?: string;
 }
 
 export interface PurchaseInvoice {

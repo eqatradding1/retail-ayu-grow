@@ -37,6 +37,7 @@ import Billing from "@/pages/Billing";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 
+// Create QueryClient outside of component to avoid re-initialization
 const queryClient = new QueryClient();
 
 const App = () => (
