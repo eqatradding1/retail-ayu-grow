@@ -1,92 +1,72 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import AuthGuard from "@/components/AuthGuard";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import "./App.css";
+import Dashboard from "./pages/Dashboard";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import Products from "./pages/product/Products";
+import Categories from "./pages/product/Categories";
+import Units from "./pages/product/Units";
+import AppLayout from "./components/AppLayout";
+import AuthLayout from "./components/AuthLayout";
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import Unauthorized from "./pages/Unauthorized";
+import POS from "./pages/POS";
+import Profile from "./pages/Profile";
+import Inventory from "./pages/Inventory";
+import Customers from "./pages/Customers";
+import LoyaltyProgram from "./pages/LoyaltyProgram";
+import Expenses from "./pages/Expenses";
+import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
+import Billing from "./pages/Billing";
+import AuthGuard from "./components/AuthGuard";
+import { Toaster } from "@/components/ui/sonner";
+import ComingSoon from "./pages/ComingSoon";
 
-// Layouts
-import AppLayout from "@/components/AppLayout";
-import AuthLayout from "@/components/AuthLayout";
+function App() {
+  return (
+    <Router>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<Index />} />
+        
+        {/* Auth routes */}
+        <Route path="/auth" element={<AuthLayout />}>
+          <Route path="login" element={<Login />} />
+          <Route path="register" element={<Register />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="unauthorized" element={<Unauthorized />} />
+        </Route>
+        
+        {/* Protected routes */}
+        <Route element={<AuthGuard />}>
+          <Route element={<AppLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/categories" element={<Categories />} />
+            <Route path="/units" element={<Units />} />
+            <Route path="/pos" element={<POS />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/loyalty" element={<LoyaltyProgram />} />
+            <Route path="/expenses" element={<Expenses />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/billing" element={<Billing />} />
+            <Route path="/coming-soon" element={<ComingSoon />} />
+          </Route>
+        </Route>
 
-// Auth Pages
-import Login from "@/pages/auth/Login";
-import Register from "@/pages/auth/Register";
-
-// App Pages
-import Dashboard from "@/pages/Dashboard";
-import Profile from "@/pages/Profile";
-import NotFound from "@/pages/NotFound";
-import Unauthorized from "@/pages/Unauthorized";
-import ComingSoon from "@/pages/ComingSoon";
-
-// Product Management Pages
-import Categories from "@/pages/product/Categories";
-import Units from "@/pages/product/Units";
-import Products from "@/pages/product/Products";
-import POS from "@/pages/POS";
-
-// Feature Pages
-import LoyaltyProgram from "@/pages/LoyaltyProgram";
-import Inventory from "@/pages/Inventory";
-import Customers from "@/pages/Customers";
-import Expenses from "@/pages/Expenses";
-import Billing from "@/pages/Billing";
-import Reports from "@/pages/Reports";
-import Settings from "@/pages/Settings";
-
-// Create QueryClient outside of component to avoid re-initialization
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Redirect root to login page */}
-            <Route path="/" element={<Navigate to="/auth/login" replace />} />
-
-            {/* Auth routes */}
-            <Route path="/auth" element={<AuthLayout />}>
-              <Route path="login" element={<Login />} />
-              <Route path="register" element={<Register />} />
-              {/* Add other auth routes like forgot password, reset password, etc. */}
-            </Route>
-
-            {/* Protected app routes with authentication guard */}
-            <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/profile" element={<Profile />} />
-              
-              {/* Product Management */}
-              <Route path="/products/categories" element={<Categories />} />
-              <Route path="/products/units" element={<Units />} />
-              <Route path="/products" element={<Products />} />
-              
-              {/* Main features */}
-              <Route path="/pos" element={<POS />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/billing" element={<Billing />} />
-              <Route path="/expenses" element={<Expenses />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/loyalty" element={<LoyaltyProgram />} />
-              <Route path="/settings" element={<Settings />} />
-            </Route>
-
-            {/* Utility routes */}
-            <Route path="/unauthorized" element={<Unauthorized />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+        {/* 404 route */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <Toaster />
+    </Router>
+  );
+}
 
 export default App;

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -37,7 +37,10 @@ import {
   Users,
   Plus,
   Pencil,
-  Trash2
+  Trash2,
+  AlertTriangle,
+  Calendar,
+  Filter
 } from "lucide-react";
 import { 
   Select, 
@@ -46,8 +49,15 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from "@/components/ui/popover";
 import EnhancedStockForm from "@/components/inventory/EnhancedStockForm";
 import { Product, StockTransaction, Supplier, ProductVariant } from "@/types/product";
+import { addDays, format, differenceInDays } from "date-fns";
 
 // Mock products data (we'd fetch from supabase in production)
 const initialProducts: Product[] = [
@@ -65,7 +75,8 @@ const initialProducts: Product[] = [
     priceLevels: [],
     loyaltyPoints: 18,
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
+    expiryDate: addDays(new Date(), 180).toISOString() // 6 months from now
   },
   {
     id: "2",
@@ -81,7 +92,8 @@ const initialProducts: Product[] = [
     priceLevels: [],
     loyaltyPoints: 14,
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
+    expiryDate: addDays(new Date(), 30).toISOString() // 30 days from now (soon to expire)
   }
 ];
 
@@ -162,6 +174,30 @@ export default function Inventory() {
   // Stock transaction dialog states
   const [isAddTransactionDialogOpen, setIsAddTransactionDialogOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<"purchase" | "sale" | "return" | "adjustment">("purchase");
+  
+  // Filter states
+  const [typeFilter, setTypeFilter] = useState<string>("all"); 
+  const [dateFilter, setDateFilter] = useState<string>("all");
+  const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
+  
+  // Expiring products warning
+  const [expiringProducts, setExpiringProducts] = useState<Product[]>([]);
+  
+  // Check for products approaching expiration
+  useEffect(() => {
+    const expiring = products.filter(product => {
+      if (!product.expiryDate) return false;
+      
+      const daysUntilExpiry = differenceInDays(
+        new Date(product.expiryDate),
+        new Date()
+      );
+      
+      return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
+    });
+    
+    setExpiringProducts(expiring);
+  }, [products]);
 
   // Helper function to get product name by ID - Moved up before being used
   const getProductName = (productId: string) => {
@@ -183,14 +219,37 @@ export default function Inventory() {
       )
     : suppliers;
 
-  // Filter transactions based on search term - Now this works because getProductName is defined above
-  const filteredTransactions = searchTerm
-    ? transactions.filter(transaction =>
-        getProductName(transaction.productId).toLowerCase().includes(searchTerm.toLowerCase()) ||
+  // Apply all filters to transactions
+  const filteredTransactions = transactions.filter(transaction => {
+    // Search filter
+    const matchesSearch = searchTerm 
+      ? getProductName(transaction.productId).toLowerCase().includes(searchTerm.toLowerCase()) ||
         transaction.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         transaction.type.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : transactions;
+      : true;
+    
+    // Type filter
+    const matchesType = typeFilter === "all" || transaction.type === typeFilter;
+    
+    // Date filter
+    let matchesDate = true;
+    const transactionDate = new Date(transaction.date);
+    const today = new Date();
+    
+    if (dateFilter === "today") {
+      matchesDate = transactionDate.toDateString() === today.toDateString();
+    } else if (dateFilter === "thisWeek") {
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay());
+      matchesDate = transactionDate >= weekStart;
+    } else if (dateFilter === "thisMonth") {
+      matchesDate = 
+        transactionDate.getMonth() === today.getMonth() && 
+        transactionDate.getFullYear() === today.getFullYear();
+    }
+    
+    return matchesSearch && matchesType && matchesDate;
+  });
 
   // Handle adding a new supplier
   const handleAddSupplier = () => {
@@ -291,11 +350,55 @@ export default function Inventory() {
     setIsAddTransactionDialogOpen(false);
   };
 
+  // Reset all filters
+  const resetFilters = () => {
+    setTypeFilter("all");
+    setDateFilter("all");
+    setSearchTerm("");
+    setIsFilterPopoverOpen(false);
+  };
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Inventory Management</h1>
       </div>
+
+      {/* Expiring Products Warning */}
+      {expiringProducts.length > 0 && (
+        <div className="mb-6">
+          <Card className="bg-amber-50 border-amber-300">
+            <CardHeader className="pb-2">
+              <div className="flex items-center">
+                <AlertTriangle className="h-5 w-5 text-amber-500 mr-2" />
+                <CardTitle className="text-amber-800">Products Approaching Expiration</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {expiringProducts.map(product => {
+                  const daysUntilExpiry = differenceInDays(
+                    new Date(product.expiryDate!),
+                    new Date()
+                  );
+                  
+                  return (
+                    <li key={product.id} className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 text-amber-500 mr-2" />
+                        <span className="font-medium">{product.name}</span>
+                      </div>
+                      <Badge variant={daysUntilExpiry <= 7 ? "destructive" : "outline"} className="ml-2">
+                        {daysUntilExpiry} {daysUntilExpiry === 1 ? "day" : "days"} left
+                      </Badge>
+                    </li>
+                  );
+                })}
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Tabs defaultValue="stock" className="w-full">
         <TabsList className="mb-4">
@@ -340,15 +443,76 @@ export default function Inventory() {
                   </Button>
                 </div>
               </div>
-              <div className="relative flex mt-4">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input 
-                  type="search" 
-                  placeholder="Search transactions..." 
-                  className="pl-8 w-full" 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+              <div className="flex items-center gap-2 mt-4">
+                <div className="relative flex flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                  <Input 
+                    type="search" 
+                    placeholder="Search transactions..." 
+                    className="pl-8 w-full" 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                
+                <Popover open={isFilterPopoverOpen} onOpenChange={setIsFilterPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="gap-1">
+                      <Filter className="h-4 w-4" />
+                      <span>Filter</span>
+                      {(typeFilter !== "all" || dateFilter !== "all") && (
+                        <Badge variant="secondary" className="ml-1 h-5 px-1 rounded-full">
+                          {((typeFilter !== "all" ? 1 : 0) + (dateFilter !== "all" ? 1 : 0))}
+                        </Badge>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Filter Transactions</h4>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="type-filter">Transaction Type</Label>
+                        <Select value={typeFilter} onValueChange={setTypeFilter}>
+                          <SelectTrigger id="type-filter">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Types</SelectItem>
+                            <SelectItem value="purchase">Purchase</SelectItem>
+                            <SelectItem value="sale">Sale</SelectItem>
+                            <SelectItem value="return">Return</SelectItem>
+                            <SelectItem value="adjustment">Adjustment</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="date-filter">Date Range</Label>
+                        <Select value={dateFilter} onValueChange={setDateFilter}>
+                          <SelectTrigger id="date-filter">
+                            <SelectValue placeholder="Select date range" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Time</SelectItem>
+                            <SelectItem value="today">Today</SelectItem>
+                            <SelectItem value="thisWeek">This Week</SelectItem>
+                            <SelectItem value="thisMonth">This Month</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex justify-between pt-2">
+                        <Button variant="outline" size="sm" onClick={resetFilters}>
+                          Reset Filters
+                        </Button>
+                        <Button size="sm" onClick={() => setIsFilterPopoverOpen(false)}>
+                          Apply
+                        </Button>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </CardHeader>
             <CardContent>
@@ -365,46 +529,54 @@ export default function Inventory() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTransactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell>
-                        {new Date(transaction.date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          {transaction.type === "purchase" && (
-                            <ArrowDownCircle className="mr-2 h-4 w-4 text-green-500" />
-                          )}
-                          {transaction.type === "sale" && (
-                            <ArrowUpCircle className="mr-2 h-4 w-4 text-blue-500" />
-                          )}
-                          {transaction.type === "return" && (
-                            <ArrowDownCircle className="mr-2 h-4 w-4 text-amber-500" />
-                          )}
-                          {transaction.type === "adjustment" && (
-                            <Package className="mr-2 h-4 w-4 text-gray-500" />
-                          )}
-                          <span className="capitalize">{transaction.type}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{getProductName(transaction.productId)}</TableCell>
-                      <TableCell>{transaction.quantity}</TableCell>
-                      <TableCell>{transaction.unitPrice.toLocaleString()}</TableCell>
-                      <TableCell>{(transaction.quantity * transaction.unitPrice).toLocaleString()}</TableCell>
-                      <TableCell>
-                        {transaction.supplierId && (
-                          <div>
-                            <div>{getSupplierName(transaction.supplierId)}</div>
-                            {transaction.invoiceNumber && (
-                              <div className="text-xs text-muted-foreground">
-                                {transaction.invoiceNumber}
-                              </div>
+                  {filteredTransactions.length > 0 ? (
+                    filteredTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell>
+                          {new Date(transaction.date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            {transaction.type === "purchase" && (
+                              <ArrowDownCircle className="mr-2 h-4 w-4 text-green-500" />
                             )}
+                            {transaction.type === "sale" && (
+                              <ArrowUpCircle className="mr-2 h-4 w-4 text-blue-500" />
+                            )}
+                            {transaction.type === "return" && (
+                              <ArrowDownCircle className="mr-2 h-4 w-4 text-amber-500" />
+                            )}
+                            {transaction.type === "adjustment" && (
+                              <Package className="mr-2 h-4 w-4 text-gray-500" />
+                            )}
+                            <span className="capitalize">{transaction.type}</span>
                           </div>
-                        )}
+                        </TableCell>
+                        <TableCell>{getProductName(transaction.productId)}</TableCell>
+                        <TableCell>{transaction.quantity}</TableCell>
+                        <TableCell>{transaction.unitPrice.toLocaleString()}</TableCell>
+                        <TableCell>{(transaction.quantity * transaction.unitPrice).toLocaleString()}</TableCell>
+                        <TableCell>
+                          {transaction.supplierId && (
+                            <div>
+                              <div>{getSupplierName(transaction.supplierId)}</div>
+                              {transaction.invoiceNumber && (
+                                <div className="text-xs text-muted-foreground">
+                                  {transaction.invoiceNumber}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
+                        No transactions found. Try adjusting your search or filters.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </CardContent>

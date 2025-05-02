@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +63,7 @@ export default function EnhancedStockForm({
   const [isVariant, setIsVariant] = useState<boolean>(false);
   const [variantName, setVariantName] = useState<string>("");
   const [updateRetailPrice, setUpdateRetailPrice] = useState<boolean>(true);
+  const [updateCostPrice, setUpdateCostPrice] = useState<boolean>(true);
   const [profitMargin, setProfitMargin] = useState<number>(20); // Default 20% markup
   const [autoUpdate, setAutoUpdate] = useState<boolean>(true);
   
@@ -166,21 +168,22 @@ export default function EnhancedStockForm({
           id: Date.now().toString(),
           productId: item.productId,
           name: item.variantName || "",
+          sku: "",
           stockQuantity: item.quantity,
           costPrice: item.unitPrice,
           retailPrice: item.unitPrice * (1 + profitMargin / 100)
         };
       }
       
-      // If updateRetailPrice is true and it's a purchase, update the product's retail price
+      // If updateRetailPrice or updateCostPrice is true and it's a purchase, update the product's prices
       let productPriceUpdate = null;
-      if (updateRetailPrice && transactionType === "purchase" && !item.isVariant) {
+      if (transactionType === "purchase" && !item.isVariant) {
         const product = products.find(p => p.id === item.productId);
         if (product) {
           productPriceUpdate = {
             productId: product.id,
-            costPrice: item.unitPrice,
-            retailPrice: item.unitPrice * (1 + profitMargin / 100)
+            costPrice: updateCostPrice ? item.unitPrice : product.costPrice,
+            retailPrice: updateRetailPrice ? item.unitPrice * (1 + profitMargin / 100) : product.retailPrice
           };
         }
       }
@@ -345,6 +348,24 @@ export default function EnhancedStockForm({
             
             {autoUpdate && (
               <>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="update-cost-price">Update product cost price</Label>
+                  <Switch
+                    id="update-cost-price"
+                    checked={updateCostPrice}
+                    onCheckedChange={setUpdateCostPrice}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="update-retail-price">Update product retail price</Label>
+                  <Switch
+                    id="update-retail-price"
+                    checked={updateRetailPrice}
+                    onCheckedChange={setUpdateRetailPrice}
+                  />
+                </div>
+                
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="profit-margin">Profit Margin (%)</Label>
@@ -370,7 +391,13 @@ export default function EnhancedStockForm({
                   <FileCheck className="h-3 w-3 mr-1" />
                   {isVariant 
                     ? "This price will be applied to the new variant only." 
-                    : "This will update the retail price of the product."
+                    : updateRetailPrice && updateCostPrice 
+                      ? "This will update both the cost and retail price of the product."
+                      : updateRetailPrice 
+                        ? "This will update only the retail price of the product."
+                        : updateCostPrice
+                          ? "This will update only the cost price of the product."
+                          : "No prices will be updated."
                   }
                 </div>
               </>
