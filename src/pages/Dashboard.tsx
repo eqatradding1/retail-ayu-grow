@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,12 +11,14 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
 } from "recharts";
-import { ShoppingCart, Package, Users, CreditCard } from "lucide-react";
+import { ShoppingCart, Package, Users, CreditCard, Truck, PieChart as PieChartIcon, Clipboard } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import MetricCard from "@/components/dashboard/MetricCard";
+import HourlySalesChart from "@/components/dashboard/HourlySalesChart";
+import UserCounter from "@/components/dashboard/UserCounter";
+import CustomerChat from "@/components/dashboard/CustomerChat";
 
 // Sample data
 const recentSalesData = [
@@ -115,37 +116,56 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard
+      {/* Summary cards - now using MetricCard component for consistency */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <MetricCard
           title="Total Sales"
           value="Rp 8,456,780"
-          icon={ShoppingCart}
+          icon={<ShoppingCart className="h-6 w-6" />}
           change="+12.5% from last week"
           changeType="increase"
         />
-        <SummaryCard
+        <MetricCard
           title="Inventory Items"
           value="290"
-          icon={Package}
+          icon={<Package className="h-6 w-6" />}
           change="15 items low on stock"
           changeType="neutral"
         />
-        <SummaryCard
+        <MetricCard
           title="Customers"
           value="1,245"
-          icon={Users}
+          icon={<Users className="h-6 w-6" />}
           change="+8.2% from last month"
           changeType="increase"
         />
-        <SummaryCard
-          title="Pending Payments"
-          value="Rp 1,245,000"
-          icon={CreditCard}
-          change="4 payments due today"
-          changeType="decrease"
+        <MetricCard
+          title="This Month's Load"
+          value="Rp 56,245,000"
+          icon={<Truck className="h-6 w-6" />}
+          change="+5.3% from last month"
+          changeType="increase"
+        />
+        <MetricCard
+          title="Products Ordered"
+          value="547 units"
+          icon={<Clipboard className="h-6 w-6" />}
+          change="24 units today"
+          changeType="neutral"
         />
       </div>
+
+      {/* Online users counter */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <UserCounter />
+        {/* Other metrics could go here */}
+        <div className="md:col-span-2">
+          <CustomerChat />
+        </div>
+      </div>
+
+      {/* Hourly sales chart with date selector */}
+      <HourlySalesChart />
 
       {/* Recent sales chart */}
       <Card>
@@ -223,95 +243,59 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Sales by Hour */}
+        {/* Recent activities - simplified for this demo */}
         <Card>
           <CardHeader>
-            <CardTitle>Sales by Hour (Today)</CardTitle>
+            <CardTitle>Recent Activities</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={salesByHourData}
-                  margin={{
-                    top: 20,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="time" />
-                  <YAxis />
-                  <Tooltip
-                    formatter={(value) => [`Rp ${value.toLocaleString()}`, "Sales"]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="sales"
-                    stroke="#7E69AB"
-                    activeDot={{ r: 8 }}
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4 rounded-lg border p-4">
+                <div className="h-9 w-9 rounded-full bg-retailayu-soft-gray flex items-center justify-center">
+                  <ShoppingCart className="h-5 w-5 text-retailayu-purple" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    New sale completed: Invoice #INV-2023042
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    15 minutes ago by Sarah Johnson
+                  </p>
+                </div>
+                <div className="font-medium">Rp 245,000</div>
+              </div>
+              <div className="flex items-center space-x-4 rounded-lg border p-4">
+                <div className="h-9 w-9 rounded-full bg-retailayu-soft-gray flex items-center justify-center">
+                  <Package className="h-5 w-5 text-retailayu-purple" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    Low stock alert: Organic Milk (5 remaining)
+                  </p>
+                  <p className="text-sm text-muted-foreground">45 minutes ago</p>
+                </div>
+                <Button size="sm" variant="outline">
+                  Reorder
+                </Button>
+              </div>
+              <div className="flex items-center space-x-4 rounded-lg border p-4">
+                <div className="h-9 w-9 rounded-full bg-retailayu-soft-gray flex items-center justify-center">
+                  <Users className="h-5 w-5 text-retailayu-purple" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    New customer registered: Maria Smith
+                  </p>
+                  <p className="text-sm text-muted-foreground">2 hours ago</p>
+                </div>
+                <Button size="sm" variant="outline">
+                  View
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Recent activities - simplified for this demo */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activities</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center space-x-4 rounded-lg border p-4">
-              <div className="h-9 w-9 rounded-full bg-retailayu-soft-gray flex items-center justify-center">
-                <ShoppingCart className="h-5 w-5 text-retailayu-purple" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  New sale completed: Invoice #INV-2023042
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  15 minutes ago by Sarah Johnson
-                </p>
-              </div>
-              <div className="font-medium">Rp 245,000</div>
-            </div>
-            <div className="flex items-center space-x-4 rounded-lg border p-4">
-              <div className="h-9 w-9 rounded-full bg-retailayu-soft-gray flex items-center justify-center">
-                <Package className="h-5 w-5 text-retailayu-purple" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  Low stock alert: Organic Milk (5 remaining)
-                </p>
-                <p className="text-sm text-muted-foreground">45 minutes ago</p>
-              </div>
-              <Button size="sm" variant="outline">
-                Reorder
-              </Button>
-            </div>
-            <div className="flex items-center space-x-4 rounded-lg border p-4">
-              <div className="h-9 w-9 rounded-full bg-retailayu-soft-gray flex items-center justify-center">
-                <Users className="h-5 w-5 text-retailayu-purple" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  New customer registered: Maria Smith
-                </p>
-                <p className="text-sm text-muted-foreground">2 hours ago</p>
-              </div>
-              <Button size="sm" variant="outline">
-                View
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

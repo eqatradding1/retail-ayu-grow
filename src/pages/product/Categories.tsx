@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useNavigate } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -37,7 +36,7 @@ const initialCategories = [
   { id: "5", name: "Beverages", description: "Drinks and beverages" },
 ];
 
-export default function Categories() {
+const Categories = () => {
   const [categories, setCategories] = useState(initialCategories);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -48,6 +47,8 @@ export default function Categories() {
     description: "",
   });
 
+  const navigate = useNavigate();
+  
   const handleAddCategory = () => {
     const newCategory = {
       id: Date.now().toString(),
@@ -80,18 +81,25 @@ export default function Categories() {
     setCurrentCategory({ id: "", name: "", description: "" });
   };
 
+  const handleBackToProducts = () => {
+    navigate('/products');
+  };
+
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Product Categories</h1>
-        <Button
-          onClick={() => {
-            setCurrentCategory({ id: "", name: "", description: "" });
-            setIsAddDialogOpen(true);
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Category
-        </Button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Product Categories</h1>
+          <p className="text-muted-foreground">
+            Manage your product categories here.
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" onClick={handleBackToProducts}>
+            Back to Products
+          </Button>
+          <Button onClick={() => setIsDialogOpen(true)}>Add Category</Button>
+        </div>
       </div>
 
       <Card>
@@ -268,4 +276,6 @@ export default function Categories() {
       </Dialog>
     </div>
   );
-}
+};
+
+export default Categories;

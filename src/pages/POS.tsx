@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,8 +28,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/sonner";
-import { Search, Barcode, ShoppingCart, X, Plus, Minus, CreditCard, Banknote, Tag } from "lucide-react";
+import { Search, Barcode, ShoppingCart, X, Plus, Minus, CreditCard, Banknote, Tag, Package } from "lucide-react";
 import { Product, Category } from "@/types/product";
+import VoiceSearch from "@/components/pos/VoiceSearch";
 
 // Mock data for products - this would be fetched from Supabase in a real implementation
 const initialProducts = [
@@ -119,6 +119,12 @@ interface CartItem {
   loyaltyPoints: number;
 }
 
+const productImages = {
+  "1": "https://images.unsplash.com/photo-1586201375761-83865001e31c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
+  "2": "https://images.unsplash.com/photo-1624806992066-5ffcdbad15f3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
+  "3": "https://images.unsplash.com/photo-1495881674446-33314d7fb917?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
+};
+
 const POS = () => {
   const [products] = useState(initialProducts);
   const [searchTerm, setSearchTerm] = useState("");
@@ -131,6 +137,11 @@ const POS = () => {
   const [usePoints, setUsePoints] = useState(false);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [lastSaleId, setLastSaleId] = useState<string | null>(null);
+
+  // Handle voice search result
+  const handleVoiceSearchResult = (term: string) => {
+    setSearchTerm(term);
+  };
 
   // Calculate totals
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -262,7 +273,7 @@ const POS = () => {
   };
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto py-6 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Point of Sale</h1>
         
@@ -290,9 +301,8 @@ const POS = () => {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle>Products</CardTitle>
-              <CardDescription>Find and add products to the cart</CardDescription>
               
-              <div className="flex gap-2 mt-2">
+              <div className="flex flex-wrap gap-2 mt-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                   <Input
@@ -307,6 +317,7 @@ const POS = () => {
                   <Barcode className="h-4 w-4 mr-2" />
                   Scan
                 </Button>
+                <VoiceSearch onSearchResult={handleVoiceSearchResult} />
               </div>
               
               {/* Categories filter */}
@@ -336,15 +347,35 @@ const POS = () => {
                 {filteredProducts.map(product => (
                   <div
                     key={product.id}
-                    className="border rounded-md p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="border rounded-md overflow-hidden cursor-pointer hover:border-primary hover:shadow-md transition-all"
                     onClick={() => addToCart(product)}
                   >
-                    <div className="font-medium truncate">{product.name}</div>
-                    <div className="text-sm text-gray-500">
-                      Stock: {product.stockQuantity}
+                    <div className="h-32 bg-gray-100 relative">
+                      {productImages[product.id] ? (
+                        <img 
+                          src={productImages[product.id]} 
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                          <Package className="h-8 w-8 text-gray-400" />
+                        </div>
+                      )}
+                      {product.stockQuantity <= product.minStockLevel && (
+                        <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                          Low Stock
+                        </div>
+                      )}
                     </div>
-                    <div className="mt-1 font-bold">
-                      {product.retailPrice.toLocaleString()}
+                    <div className="p-3">
+                      <div className="font-medium truncate">{product.name}</div>
+                      <div className="text-sm text-gray-500">
+                        Stock: {product.stockQuantity}
+                      </div>
+                      <div className="mt-1 font-bold">
+                        Rp {product.retailPrice.toLocaleString()}
+                      </div>
                     </div>
                   </div>
                 ))}

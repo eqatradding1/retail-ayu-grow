@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,15 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -25,78 +17,131 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "@/components/ui/sonner";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Plus, Pencil, Trash } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-// Mock data for units - will be replaced with Supabase integration
-const initialUnits = [
-  { id: "1", name: "Kg", description: "Kilogram" },
-  { id: "2", name: "g", description: "Gram" },
-  { id: "3", name: "L", description: "Liter" },
-  { id: "4", name: "ml", description: "Milliliter" },
-  { id: "5", name: "pcs", description: "Pieces" },
-];
+interface Unit {
+  id: string;
+  name: string;
+  description: string;
+}
 
-export default function Units() {
-  const [units, setUnits] = useState(initialUnits);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [currentUnit, setCurrentUnit] = useState({
-    id: "",
-    name: "",
-    description: "",
-  });
+const Units = () => {
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const navigate = useNavigate();
 
-  const handleAddUnit = () => {
+  useEffect(() => {
+    // Mock data for units
+    const mockUnits = [
+      { id: "1", name: "pcs", description: "Pieces" },
+      { id: "2", name: "kg", description: "Kilograms" },
+      { id: "3", name: "g", description: "Grams" },
+      { id: "4", name: "l", description: "Liters" },
+      { id: "5", name: "ml", description: "Milliliters" },
+    ];
+    setUnits(mockUnits);
+  }, []);
+
+  const handleCreate = () => {
+    if (!name || !description) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    // In a real app, this would save to a database
     const newUnit = {
       id: Date.now().toString(),
-      name: currentUnit.name,
-      description: currentUnit.description,
+      name,
+      description,
     };
     setUnits([...units, newUnit]);
-    setIsAddDialogOpen(false);
-    toast.success("Unit added successfully");
-    setCurrentUnit({ id: "", name: "", description: "" });
+    toast.success("Unit created successfully!");
+    handleCloseDialog();
   };
 
-  const handleEditUnit = () => {
+  const handleUpdate = () => {
+    if (!name || !description || !selectedUnit) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    // In a real app, this would update the database
     const updatedUnits = units.map((unit) =>
-      unit.id === currentUnit.id ? currentUnit : unit
+      unit.id === selectedUnit.id ? { ...unit, name, description } : unit
     );
     setUnits(updatedUnits);
-    setIsEditDialogOpen(false);
-    toast.success("Unit updated successfully");
-    setCurrentUnit({ id: "", name: "", description: "" });
+    toast.success("Unit updated successfully!");
+    handleCloseDialog();
   };
 
-  const handleDeleteUnit = () => {
-    const updatedUnits = units.filter((unit) => unit.id !== currentUnit.id);
-    setUnits(updatedUnits);
-    setIsDeleteDialogOpen(false);
-    toast.success("Unit deleted successfully");
-    setCurrentUnit({ id: "", name: "", description: "" });
+  const handleDelete = (id: string) => {
+    // In a real app, this would delete from the database
+    setUnits(units.filter((unit) => unit.id !== id));
+    toast.success("Unit deleted successfully!");
+  };
+
+  const handleOpenDialog = (unit: Unit | null = null) => {
+    setSelectedUnit(unit);
+    if (unit) {
+      setName(unit.name);
+      setDescription(unit.description);
+      setIsEditMode(true);
+    } else {
+      setName("");
+      setDescription("");
+      setIsEditMode(false);
+    }
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setSelectedUnit(null);
+    setName("");
+    setDescription("");
+  };
+
+  // Add navigation function to go back to Products page
+  const handleBackToProducts = () => {
+    navigate('/products');
   };
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Product Units</h1>
-        <Button
-          onClick={() => {
-            setCurrentUnit({ id: "", name: "", description: "" });
-            setIsAddDialogOpen(true);
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Unit
-        </Button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Product Units</h1>
+          <p className="text-muted-foreground">
+            Manage your product units of measurement here.
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" onClick={handleBackToProducts}>
+            Back to Products
+          </Button>
+          <Button onClick={() => setIsDialogOpen(true)}>Add Unit</Button>
+        </div>
       </div>
-
+      
       <Card>
         <CardHeader>
-          <CardTitle>Units of Measurement</CardTitle>
+          <CardTitle>Units List</CardTitle>
           <CardDescription>
-            Manage product units of measurement for your inventory.
+            View and manage your product units.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -111,28 +156,14 @@ export default function Units() {
             <TableBody>
               {units.map((unit) => (
                 <TableRow key={unit.id}>
-                  <TableCell className="font-medium">{unit.name}</TableCell>
+                  <TableCell>{unit.name}</TableCell>
                   <TableCell>{unit.description}</TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setCurrentUnit(unit);
-                        setIsEditDialogOpen(true);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(unit)}>
+                      <Pencil className="h-4 w-4 mr-2" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setCurrentUnit(unit);
-                        setIsDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(unit.id)}>
+                      <Trash className="h-4 w-4 mr-2" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -142,127 +173,50 @@ export default function Units() {
         </CardContent>
       </Card>
 
-      {/* Add Unit Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Add Unit</DialogTitle>
+            <DialogTitle>{isEditMode ? "Edit Unit" : "Create Unit"}</DialogTitle>
             <DialogDescription>
-              Add a new unit of measurement for products.
+              {isEditMode ? "Update your unit here." : "Add a new unit to the list."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="name">Unit Name</label>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Name
+              </Label>
               <Input
                 id="name"
-                value={currentUnit.name}
-                onChange={(e) =>
-                  setCurrentUnit({
-                    ...currentUnit,
-                    name: e.target.value,
-                  })
-                }
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="col-span-3"
               />
             </div>
-            <div className="grid gap-2">
-              <label htmlFor="description">Description</label>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="description" className="text-right">
+                Description
+              </Label>
               <Input
                 id="description"
-                value={currentUnit.description}
-                onChange={(e) =>
-                  setCurrentUnit({
-                    ...currentUnit,
-                    description: e.target.value,
-                  })
-                }
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="col-span-3"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+            <Button type="button" variant="secondary" onClick={handleCloseDialog}>
               Cancel
             </Button>
-            <Button onClick={handleAddUnit}>Add Unit</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Unit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Unit</DialogTitle>
-            <DialogDescription>
-              Make changes to the unit of measurement.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="edit-name">Unit Name</label>
-              <Input
-                id="edit-name"
-                value={currentUnit.name}
-                onChange={(e) =>
-                  setCurrentUnit({
-                    ...currentUnit,
-                    name: e.target.value,
-                  })
-                }
-              />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="edit-description">Description</label>
-              <Input
-                id="edit-description"
-                value={currentUnit.description}
-                onChange={(e) =>
-                  setCurrentUnit({
-                    ...currentUnit,
-                    description: e.target.value,
-                  })
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleEditUnit}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Unit Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Unit</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this unit?
-            </DialogDescription>
-          </DialogHeader>
-          <p>
-            This will permanently delete the "{currentUnit.name}" unit. This
-            action cannot be undone.
-          </p>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteUnit}>
-              Delete
+            <Button type="submit" onClick={isEditMode ? handleUpdate : handleCreate}>
+              {isEditMode ? "Update" : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
-}
+};
+
+export default Units;
