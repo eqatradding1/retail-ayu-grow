@@ -163,6 +163,17 @@ export default function Inventory() {
   const [isAddTransactionDialogOpen, setIsAddTransactionDialogOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<"purchase" | "sale" | "return" | "adjustment">("purchase");
 
+  // Helper function to get product name by ID - Moved up before being used
+  const getProductName = (productId: string) => {
+    return products.find(product => product.id === productId)?.name || "Unknown Product";
+  };
+
+  // Helper function to get supplier name by ID - Moved up before being used
+  const getSupplierName = (supplierId?: string) => {
+    if (!supplierId) return "N/A";
+    return suppliers.find(supplier => supplier.id === supplierId)?.name || "Unknown Supplier";
+  };
+
   // Filter suppliers based on search term
   const filteredSuppliers = searchTerm
     ? suppliers.filter(supplier => 
@@ -172,7 +183,7 @@ export default function Inventory() {
       )
     : suppliers;
 
-  // Filter transactions based on search term
+  // Filter transactions based on search term - Now this works because getProductName is defined above
   const filteredTransactions = searchTerm
     ? transactions.filter(transaction =>
         getProductName(transaction.productId).toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -180,17 +191,6 @@ export default function Inventory() {
         transaction.type.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : transactions;
-
-  // Helper function to get product name by ID
-  const getProductName = (productId: string) => {
-    return products.find(product => product.id === productId)?.name || "Unknown Product";
-  };
-
-  // Helper function to get supplier name by ID
-  const getSupplierName = (supplierId?: string) => {
-    if (!supplierId) return "N/A";
-    return suppliers.find(supplier => supplier.id === supplierId)?.name || "Unknown Supplier";
-  };
 
   // Handle adding a new supplier
   const handleAddSupplier = () => {
