@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -28,13 +29,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/sonner";
-import { Plus } from "lucide-react";
+import { Plus, X, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface Product {
+  id: string;
+  name: string;
+  barcode?: string;
+  stockQuantity: number;
+}
 
 interface Reward {
   id: string;
   name: string;
   pointsCost: number;
   description: string;
+  productIds?: string[];
 }
 
 interface Redemption {
@@ -58,18 +69,29 @@ interface Customer {
 interface RedemptionFormProps {
   rewards: Reward[];
   customers: Customer[];
+  products?: Product[];
   onAddRedemption: (redemption: Redemption) => void;
 }
 
 export const RedemptionForm = ({
   rewards,
   customers,
+  products = [],
   onAddRedemption,
 }: RedemptionFormProps) => {
   const [open, setOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [selectedReward, setSelectedReward] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
+  
+  // Get the selected reward's products
+  const selectedRewardProducts = selectedReward
+    ? rewards.find(r => r.id === selectedReward)?.productIds || []
+    : [];
+  
+  // Get product details for the selected reward
+  const rewardProductDetails = products
+    .filter(p => selectedRewardProducts.includes(p.id));
 
   const handleSubmit = () => {
     const customer = customers.find((c) => c.id === selectedCustomer);
@@ -168,6 +190,19 @@ export const RedemptionForm = ({
                 Cost: {rewards.find((r) => r.id === selectedReward)?.pointsCost}{" "}
                 points
               </p>
+              
+              {rewardProductDetails.length > 0 && (
+                <div className="mt-3">
+                  <p className="font-medium mb-1">Included Products:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {rewardProductDetails.map(product => (
+                      <Badge key={product.id} variant="outline" className="text-xs">
+                        {product.name} {product.stockQuantity < 1 && <span className="text-red-500">(Out of stock)</span>}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

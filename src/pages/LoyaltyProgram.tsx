@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Edit, Trash, Check, X, Gift } from "lucide-react";
+import { Plus, Edit, Trash, Check, X, Gift, Search } from "lucide-react";
 import { RedemptionForm } from "@/components/loyalty/RedemptionForm";
 import {
   Select,
@@ -33,14 +33,25 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Define types
+interface Product {
+  id: string;
+  name: string;
+  barcode?: string;
+  stockQuantity: number;
+  retailPrice: number;
+}
+
 interface Reward {
   id: string;
   name: string;
   pointsCost: number;
   description: string;
   isActive: boolean;
+  productIds?: string[];
 }
 
 interface Rule {
@@ -78,6 +89,7 @@ const initialRewards: Reward[] = [
     pointsCost: 100,
     description: "Enjoy a free coffee of your choice",
     isActive: true,
+    productIds: ["101"]
   },
   {
     id: "2",
@@ -122,6 +134,15 @@ const initialRules: Rule[] = [
   },
 ];
 
+// Mock products for reward selection
+const mockProducts: Product[] = [
+  { id: "101", name: "Arabica Coffee", stockQuantity: 25, retailPrice: 15000 },
+  { id: "102", name: "Robusta Coffee", stockQuantity: 30, retailPrice: 12000 },
+  { id: "103", name: "Cappuccino", stockQuantity: 0, retailPrice: 18000 },
+  { id: "104", name: "Latte", stockQuantity: 15, retailPrice: 20000 },
+  { id: "105", name: "Espresso", stockQuantity: 40, retailPrice: 14000 },
+];
+
 // Mock customers for redemption
 const mockCustomers: Customer[] = [
   { id: "1", name: "John Doe", loyaltyPoints: 250 },
@@ -157,6 +178,11 @@ export default function LoyaltyProgram() {
   const [rewards, setRewards] = useState<Reward[]>(initialRewards);
   const [rules, setRules] = useState<Rule[]>(initialRules);
   const [redemptions, setRedemptions] = useState<Redemption[]>(initialRedemptions);
+  const [products] = useState<Product[]>(mockProducts);
+  
+  // Search states
+  const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   
   // Dialog states
   const [isAddRewardOpen, setIsAddRewardOpen] = useState(false);
@@ -168,6 +194,7 @@ export default function LoyaltyProgram() {
   const [isDeleteRuleOpen, setIsDeleteRuleOpen] = useState(false);
   
   const [isUpdateRedemptionOpen, setIsUpdateRedemptionOpen] = useState(false);
+  const [isDeleteRedemptionOpen, setIsDeleteRedemptionOpen] = useState(false);
 
   // Form states
   const [currentReward, setCurrentReward] = useState<Reward | null>(null);
@@ -178,6 +205,7 @@ export default function LoyaltyProgram() {
     name: "",
     pointsCost: 0,
     description: "",
+    productIds: [],
   });
   
   const [newRule, setNewRule] = useState<Omit<Rule, "id" | "isActive">>({
@@ -186,6 +214,40 @@ export default function LoyaltyProgram() {
     pointsAwarded: 0,
     condition: "",
   });
+
+  // Filter products based on search term
+  const filteredProducts = productSearchTerm
+    ? products.filter(product => 
+        product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+        (product.barcode && product.barcode.includes(productSearchTerm))
+      )
+    : products;
+
+  // Toggle product selection
+  const toggleProductSelection = (productId: string) => {
+    if (isAddRewardOpen) {
+      setNewReward(prev => {
+        const currentIds = prev.productIds || [];
+        return {
+          ...prev,
+          productIds: currentIds.includes(productId)
+            ? currentIds.filter(id => id !== productId)
+            : [...currentIds, productId]
+        };
+      });
+    } else if (isEditRewardOpen && currentReward) {
+      setCurrentReward(prev => {
+        if (!prev) return prev;
+        const currentIds = prev.productIds || [];
+        return {
+          ...prev,
+          productIds: currentIds.includes(productId)
+            ? currentIds.filter(id => id !== productId)
+            : [...currentIds, productId]
+        };
+      });
+    }
+  };
 
   // Add new reward
   const handleAddReward = () => {
@@ -206,6 +268,7 @@ export default function LoyaltyProgram() {
       name: "",
       pointsCost: 0,
       description: "",
+      productIds: [],
     });
     toast.success("Reward added successfully");
   };
@@ -321,6 +384,15 @@ export default function LoyaltyProgram() {
       toast.success("Redemption cancelled");
     }
   };
+  
+  // Delete redemption
+  const handleDeleteRedemption = () => {
+    if (!currentRedemption) return;
+    
+    setRedemptions(redemptions.filter(redemption => redemption.id !== currentRedemption.id));
+    setIsDeleteRedemptionOpen(false);
+    toast.success("Redemption deleted successfully");
+  };
 
   return (
     <div className="container mx-auto py-6">
@@ -364,6 +436,7 @@ export default function LoyaltyProgram() {
                     <TableHead>Reward</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Points Cost</TableHead>
+                    <TableHead>Products</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -374,6 +447,13 @@ export default function LoyaltyProgram() {
                       <TableCell className="font-medium">{reward.name}</TableCell>
                       <TableCell>{reward.description}</TableCell>
                       <TableCell>{reward.pointsCost}</TableCell>
+                      <TableCell>
+                        {reward.productIds && reward.productIds.length > 0 ? (
+                          <span>{reward.productIds.length} products</span>
+                        ) : (
+                          <span className="text-muted-foreground">None</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={reward.isActive ? "default" : "secondary"}>
                           {reward.isActive ? "Active" : "Inactive"}
@@ -504,6 +584,7 @@ export default function LoyaltyProgram() {
               <RedemptionForm 
                 rewards={rewards.filter(r => r.isActive)} 
                 customers={mockCustomers}
+                products={products}
                 onAddRedemption={handleAddRedemption}
               />
             </CardHeader>
@@ -545,19 +626,32 @@ export default function LoyaltyProgram() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          {redemption.status === "pending" && (
+                          <div className="flex justify-end space-x-1">
+                            {redemption.status === "pending" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setCurrentRedemption(redemption);
+                                  setIsUpdateRedemptionOpen(true);
+                                }}
+                              >
+                                <Gift className="h-4 w-4 mr-1" />
+                                Process
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
+                              className="h-8 w-8"
                               onClick={() => {
                                 setCurrentRedemption(redemption);
-                                setIsUpdateRedemptionOpen(true);
+                                setIsDeleteRedemptionOpen(true);
                               }}
                             >
-                              <Gift className="h-4 w-4 mr-1" />
-                              Process
+                              <Trash className="h-4 w-4" />
                             </Button>
-                          )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -571,7 +665,7 @@ export default function LoyaltyProgram() {
 
       {/* Add Reward Dialog */}
       <Dialog open={isAddRewardOpen} onOpenChange={setIsAddRewardOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Add New Reward</DialogTitle>
             <DialogDescription>
@@ -609,6 +703,57 @@ export default function LoyaltyProgram() {
                 rows={3}
               />
             </div>
+            
+            <div className="grid gap-2">
+              <Label>Associated Products</Label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  type="search"
+                  placeholder="Search products..."
+                  className="pl-8 w-full"
+                  value={productSearchTerm}
+                  onChange={(e) => setProductSearchTerm(e.target.value)}
+                />
+              </div>
+              
+              <ScrollArea className="h-[200px] border rounded-md p-2">
+                <div className="space-y-2">
+                  {filteredProducts.map((product) => (
+                    <div
+                      key={product.id}
+                      className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md"
+                    >
+                      <Checkbox
+                        id={`product-${product.id}`}
+                        checked={(newReward.productIds || []).includes(product.id)}
+                        onCheckedChange={() => toggleProductSelection(product.id)}
+                      />
+                      <Label
+                        htmlFor={`product-${product.id}`}
+                        className="flex-1 cursor-pointer text-sm"
+                      >
+                        <div className="font-medium">{product.name}</div>
+                        <div className="text-xs text-muted-foreground flex justify-between">
+                          <span>Stock: {product.stockQuantity}</span>
+                          <span>Price: {product.retailPrice.toLocaleString()}</span>
+                        </div>
+                      </Label>
+                    </div>
+                  ))}
+                  
+                  {filteredProducts.length === 0 && (
+                    <p className="text-sm text-muted-foreground p-2">No products found.</p>
+                  )}
+                </div>
+              </ScrollArea>
+              
+              {(newReward.productIds || []).length > 0 && (
+                <div className="mt-2 text-sm">
+                  <span className="font-medium">{(newReward.productIds || []).length} product(s) selected</span>
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddRewardOpen(false)}>
@@ -621,7 +766,7 @@ export default function LoyaltyProgram() {
 
       {/* Edit Reward Dialog */}
       <Dialog open={isEditRewardOpen} onOpenChange={setIsEditRewardOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Edit Reward</DialogTitle>
             <DialogDescription>
@@ -656,6 +801,57 @@ export default function LoyaltyProgram() {
                   onChange={(e) => setCurrentReward({ ...currentReward, description: e.target.value })}
                   rows={3}
                 />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label>Associated Products</Label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                  <Input
+                    type="search"
+                    placeholder="Search products..."
+                    className="pl-8 w-full"
+                    value={productSearchTerm}
+                    onChange={(e) => setProductSearchTerm(e.target.value)}
+                  />
+                </div>
+                
+                <ScrollArea className="h-[200px] border rounded-md p-2">
+                  <div className="space-y-2">
+                    {filteredProducts.map((product) => (
+                      <div
+                        key={product.id}
+                        className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md"
+                      >
+                        <Checkbox
+                          id={`edit-product-${product.id}`}
+                          checked={(currentReward.productIds || []).includes(product.id)}
+                          onCheckedChange={() => toggleProductSelection(product.id)}
+                        />
+                        <Label
+                          htmlFor={`edit-product-${product.id}`}
+                          className="flex-1 cursor-pointer text-sm"
+                        >
+                          <div className="font-medium">{product.name}</div>
+                          <div className="text-xs text-muted-foreground flex justify-between">
+                            <span>Stock: {product.stockQuantity}</span>
+                            <span>Price: {product.retailPrice.toLocaleString()}</span>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                    
+                    {filteredProducts.length === 0 && (
+                      <p className="text-sm text-muted-foreground p-2">No products found.</p>
+                    )}
+                  </div>
+                </ScrollArea>
+                
+                {(currentReward.productIds || []).length > 0 && (
+                  <div className="mt-2 text-sm">
+                    <span className="font-medium">{(currentReward.productIds || []).length} product(s) selected</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -902,6 +1098,32 @@ export default function LoyaltyProgram() {
               variant="default"
             >
               Mark as Completed
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Redemption Dialog */}
+      <Dialog open={isDeleteRedemptionOpen} onOpenChange={setIsDeleteRedemptionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Redemption</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this redemption record?
+            </DialogDescription>
+          </DialogHeader>
+          {currentRedemption && (
+            <p>
+              This will permanently delete the redemption record for {currentRedemption.customerName} ({currentRedemption.rewardName}).
+              This action cannot be undone.
+            </p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteRedemptionOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteRedemption}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
