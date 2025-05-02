@@ -35,7 +35,8 @@ import {
   Trash2, 
   FileText,
   Receipt,
-  Banknote 
+  Banknote,
+  User
 } from "lucide-react";
 import { 
   Select,
@@ -55,6 +56,11 @@ interface Expense {
   paymentMethod: string;
   receiptUrl?: string;
   notes?: string;
+  createdBy?: {
+    id: string;
+    name: string;
+    timestamp: string;
+  };
 }
 
 // Mock expense categories
@@ -82,6 +88,20 @@ const paymentMethods = [
   "Check"
 ];
 
+// Mock user data for expense creation
+const currentUser = {
+  id: "u123",
+  name: "Admin User",
+  role: "Administrator"
+};
+
+// Mock user data for existing expenses
+const mockUsers = [
+  { id: "u123", name: "Admin User" },
+  { id: "u456", name: "Sarah Manager" },
+  { id: "u789", name: "John Accountant" }
+];
+
 // Mock expense data
 const initialExpenses: Expense[] = [
   {
@@ -91,7 +111,12 @@ const initialExpenses: Expense[] = [
     amount: 1500000,
     description: "Monthly store rent",
     paymentMethod: "Bank Transfer",
-    notes: "Paid on time"
+    notes: "Paid on time",
+    createdBy: {
+      id: "u456",
+      name: "Sarah Manager",
+      timestamp: "2023-04-01T09:15:32Z"
+    }
   },
   {
     id: "2",
@@ -100,7 +125,12 @@ const initialExpenses: Expense[] = [
     amount: 350000,
     description: "Electricity bill",
     paymentMethod: "Bank Transfer",
-    receiptUrl: "/receipts/utility-2023-04.pdf"
+    receiptUrl: "/receipts/utility-2023-04.pdf",
+    createdBy: {
+      id: "u789",
+      name: "John Accountant",
+      timestamp: "2023-04-05T14:22:10Z"
+    }
   },
   {
     id: "3",
@@ -108,7 +138,12 @@ const initialExpenses: Expense[] = [
     category: "Salaries",
     amount: 3000000,
     description: "Staff salaries for April",
-    paymentMethod: "Bank Transfer"
+    paymentMethod: "Bank Transfer",
+    createdBy: {
+      id: "u123",
+      name: "Admin User",
+      timestamp: "2023-04-10T11:05:27Z"
+    }
   },
   {
     id: "4",
@@ -118,7 +153,12 @@ const initialExpenses: Expense[] = [
     description: "Monthly inventory restock",
     paymentMethod: "Credit Card",
     receiptUrl: "/receipts/inventory-2023-04.pdf",
-    notes: "Includes special order for customer #3"
+    notes: "Includes special order for customer #3",
+    createdBy: {
+      id: "u456",
+      name: "Sarah Manager",
+      timestamp: "2023-04-15T16:40:03Z"
+    }
   }
 ];
 
@@ -134,7 +174,7 @@ export default function Expenses() {
   const [isViewReceiptDialogOpen, setIsViewReceiptDialogOpen] = useState(false);
   
   const [currentExpense, setCurrentExpense] = useState<Expense | null>(null);
-  const [newExpense, setNewExpense] = useState<Omit<Expense, "id">>({
+  const [newExpense, setNewExpense] = useState<Omit<Expense, "id" | "createdBy">>({
     date: new Date().toISOString().split("T")[0],
     category: "",
     amount: 0,
@@ -150,7 +190,8 @@ export default function Expenses() {
   const filteredExpenses = expenses.filter(expense => {
     const matchesSearch = searchTerm === "" || 
       expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.category.toLowerCase().includes(searchTerm.toLowerCase());
+      expense.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (expense.createdBy?.name && expense.createdBy.name.toLowerCase().includes(searchTerm.toLowerCase()));
       
     const matchesCategory = categoryFilter === "" || expense.category === categoryFilter;
     
@@ -166,7 +207,12 @@ export default function Expenses() {
     
     const expense: Expense = {
       id: Date.now().toString(),
-      ...newExpense
+      ...newExpense,
+      createdBy: {
+        id: currentUser.id,
+        name: currentUser.name,
+        timestamp: new Date().toISOString()
+      }
     };
     
     setExpenses([...expenses, expense]);
@@ -186,8 +232,19 @@ export default function Expenses() {
   const handleEditExpense = () => {
     if (!currentExpense) return;
     
+    // Preserve the original createdBy information
+    const updatedExpense = {
+      ...currentExpense,
+      // Add information about who modified it
+      lastModifiedBy: {
+        id: currentUser.id,
+        name: currentUser.name,
+        timestamp: new Date().toISOString()
+      }
+    };
+    
     const updatedExpenses = expenses.map(expense =>
-      expense.id === currentExpense.id ? currentExpense : expense
+      expense.id === currentExpense.id ? updatedExpense : expense
     );
     
     setExpenses(updatedExpenses);
@@ -206,6 +263,12 @@ export default function Expenses() {
     setExpenses(updatedExpenses);
     setIsDeleteExpenseDialogOpen(false);
     toast.success("Expense deleted successfully");
+  };
+
+  // Format timestamp to readable date and time
+  const formatTimestamp = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
   };
 
   return (
@@ -278,7 +341,7 @@ export default function Expenses() {
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="">All Categories</SelectItem>
                 {expenseCategories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
@@ -296,6 +359,7 @@ export default function Expenses() {
                 <TableHead>Category</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Payment Method</TableHead>
+                <TableHead>Created By</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -313,6 +377,21 @@ export default function Expenses() {
                       {expense.paymentMethod === "Credit Card" && <Receipt className="h-4 w-4 mr-2 text-purple-500" />}
                       {expense.paymentMethod}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {expense.createdBy ? (
+                      <div className="flex items-center">
+                        <User className="h-4 w-4 mr-2 text-gray-500" />
+                        <div>
+                          <div className="text-sm">{expense.createdBy.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {expense.createdBy.timestamp && formatTimestamp(expense.createdBy.timestamp)}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">Unknown</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right font-medium">
                     {expense.amount.toLocaleString()}
@@ -455,6 +534,18 @@ export default function Expenses() {
                 Upload a photo or scan of the receipt (PDF, JPG, PNG)
               </p>
             </div>
+            
+            {/* User information display */}
+            <div className="grid gap-2">
+              <Label>Created By</Label>
+              <div className="flex items-center p-2 border rounded-md bg-gray-50">
+                <User className="h-5 w-5 mr-2 text-gray-500" />
+                <div>
+                  <div className="text-sm font-medium">{currentUser.name}</div>
+                  <div className="text-xs text-muted-foreground">{currentUser.role}</div>
+                </div>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddExpenseDialogOpen(false)}>
@@ -465,7 +556,7 @@ export default function Expenses() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Expense Dialog - Similar structure to Add with prefilled values */}
+      {/* Edit Expense Dialog */}
       <Dialog open={isEditExpenseDialogOpen} onOpenChange={setIsEditExpenseDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -562,6 +653,34 @@ export default function Expenses() {
                   </div>
                 )}
               </div>
+              
+              {/* Creator information display */}
+              <div className="grid gap-2">
+                <Label>Created By</Label>
+                <div className="flex items-center p-2 border rounded-md bg-gray-50">
+                  <User className="h-5 w-5 mr-2 text-gray-500" />
+                  <div>
+                    <div className="text-sm font-medium">{currentExpense.createdBy?.name || "Unknown"}</div>
+                    {currentExpense.createdBy?.timestamp && (
+                      <div className="text-xs text-muted-foreground">
+                        {formatTimestamp(currentExpense.createdBy.timestamp)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Current editor information */}
+              <div className="grid gap-2">
+                <Label>Editing As</Label>
+                <div className="flex items-center p-2 border rounded-md bg-blue-50">
+                  <User className="h-5 w-5 mr-2 text-blue-500" />
+                  <div>
+                    <div className="text-sm font-medium">{currentUser.name}</div>
+                    <div className="text-xs text-muted-foreground">{currentUser.role}</div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           <DialogFooter>
@@ -587,6 +706,14 @@ export default function Expenses() {
             from {currentExpense?.date} with amount {currentExpense?.amount.toLocaleString()}.
             This action cannot be undone.
           </p>
+          {currentExpense?.createdBy && (
+            <div className="bg-yellow-50 p-2 rounded-md flex items-center mt-4">
+              <User className="h-4 w-4 mr-2 text-yellow-500" />
+              <span className="text-sm">
+                This record was created by <strong>{currentExpense.createdBy.name}</strong>
+              </span>
+            </div>
+          )}
           <DialogFooter>
             <Button
               variant="outline"
@@ -617,6 +744,19 @@ export default function Expenses() {
               <p className="text-sm text-muted-foreground">{currentExpense?.receiptUrl}</p>
             </div>
           </div>
+          {currentExpense?.createdBy && (
+            <div className="flex items-center justify-between text-sm text-gray-500 border-t pt-4">
+              <div className="flex items-center">
+                <User className="h-4 w-4 mr-2" />
+                <span>Uploaded by: {currentExpense.createdBy.name}</span>
+              </div>
+              {currentExpense.createdBy.timestamp && (
+                <span>
+                  {formatTimestamp(currentExpense.createdBy.timestamp)}
+                </span>
+              )}
+            </div>
+          )}
           <DialogFooter>
             <Button onClick={() => setIsViewReceiptDialogOpen(false)}>
               Close

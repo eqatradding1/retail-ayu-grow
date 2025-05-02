@@ -42,11 +42,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "@/components/ui/sonner";
-import { Pencil, Trash2, Plus, Barcode, Search } from "lucide-react";
+import { Pencil, Trash2, Plus, Barcode, Search, Calendar } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Product, PriceLevel, Category, Unit } from "@/types/product";
 import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 
 // Mock data for products - will be replaced with Supabase integration
 const initialProducts: Product[] = [
@@ -68,7 +69,9 @@ const initialProducts: Product[] = [
     ],
     loyaltyPoints: 18,
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
+    photoUrl: "https://source.unsplash.com/photo-1618160702438-9b02ab6515c9",
+    expiryDate: "2025-12-31"
   },
   {
     id: "2",
@@ -87,7 +90,9 @@ const initialProducts: Product[] = [
     ],
     loyaltyPoints: 14,
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
+    photoUrl: "https://source.unsplash.com/photo-1465146344425-f00d5f5c8f07",
+    expiryDate: "2025-10-15"
   }
 ];
 
@@ -121,6 +126,8 @@ export default function Products() {
     { id: "temp1", minQuantity: 5, price: 0 },
     { id: "temp2", minQuantity: 10, price: 0 },
   ]);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const form = useForm({
     defaultValues: {
@@ -134,6 +141,8 @@ export default function Products() {
       costPrice: 0,
       retailPrice: 0,
       loyaltyPoints: 0,
+      photoUrl: "",
+      expiryDate: ""
     },
   });
 
@@ -157,6 +166,8 @@ export default function Products() {
       loyaltyPoints: formValues.loyaltyPoints,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      photoUrl: photoPreview || formValues.photoUrl,
+      expiryDate: selectedDate ? selectedDate.toISOString().split('T')[0] : undefined
     };
     
     setProducts([...products, newProduct]);
@@ -166,21 +177,28 @@ export default function Products() {
       { id: "temp1", minQuantity: 5, price: 0 },
       { id: "temp2", minQuantity: 10, price: 0 },
     ]);
+    setPhotoPreview(null);
+    setSelectedDate(undefined);
     toast.success("Product added successfully");
   };
 
   const handleEditProduct = () => {
     if (!currentProduct) return;
     
+    const updatedProduct = {
+      ...currentProduct,
+      photoUrl: photoPreview || currentProduct.photoUrl,
+      expiryDate: selectedDate ? selectedDate.toISOString().split('T')[0] : currentProduct.expiryDate,
+      updatedAt: new Date().toISOString(),
+    };
+    
     const updatedProducts = products.map((product) =>
-      product.id === currentProduct.id ? {
-        ...currentProduct,
-        updatedAt: new Date().toISOString(),
-      } : product
+      product.id === currentProduct.id ? updatedProduct : product
     );
     
     setProducts(updatedProducts);
     setIsEditDialogOpen(false);
+    setPhotoPreview(null);
     toast.success("Product updated successfully");
   };
 
@@ -199,6 +217,9 @@ export default function Products() {
   const openEditDialog = (product: Product) => {
     setCurrentProduct(product);
     setPriceLevels(product.priceLevels);
+    setPhotoPreview(product.photoUrl || null);
+    setSelectedDate(product.expiryDate ? new Date(product.expiryDate) : undefined);
+    
     form.reset({
       name: product.name,
       barcode: product.barcode || "",
@@ -210,8 +231,22 @@ export default function Products() {
       costPrice: product.costPrice,
       retailPrice: product.retailPrice,
       loyaltyPoints: product.loyaltyPoints,
+      photoUrl: product.photoUrl || "",
+      expiryDate: product.expiryDate || ""
     });
+    
     setIsEditDialogOpen(true);
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const filteredProducts = searchTerm
@@ -276,6 +311,8 @@ export default function Products() {
               { id: "temp1", minQuantity: 5, price: 0 },
               { id: "temp2", minQuantity: 10, price: 0 },
             ]);
+            setPhotoPreview(null);
+            setSelectedDate(undefined);
             setIsAddDialogOpen(true);
           }}
         >
@@ -306,18 +343,32 @@ export default function Products() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Photo</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead>Stock</TableHead>
+                <TableHead>Expiry Date</TableHead>
                 <TableHead>Price</TableHead>
-                <TableHead>Points</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProducts.map((product) => (
                 <TableRow key={product.id}>
+                  <TableCell>
+                    {product.photoUrl ? (
+                      <img 
+                        src={product.photoUrl} 
+                        alt={product.name} 
+                        className="h-10 w-10 rounded-md object-cover"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-md bg-gray-100 flex items-center justify-center">
+                        <span className="text-gray-400 text-xs">No img</span>
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="font-medium">
                     <div>
                       {product.name}
@@ -339,6 +390,16 @@ export default function Products() {
                     </div>
                   </TableCell>
                   <TableCell>
+                    {product.expiryDate ? (
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-1 text-gray-500" />
+                        <span>{product.expiryDate}</span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">N/A</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <div>
                       {product.retailPrice.toLocaleString()}
                       {product.priceLevels.length > 0 && (
@@ -348,7 +409,6 @@ export default function Products() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>{product.loyaltyPoints}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"
@@ -394,6 +454,34 @@ export default function Products() {
 
             <TabsContent value="basics">
               <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label>Product Photo</Label>
+                  <div className="flex items-center gap-4">
+                    <div className="border rounded-md p-2 w-24 h-24 flex items-center justify-center">
+                      {photoPreview ? (
+                        <img 
+                          src={photoPreview} 
+                          alt="Product preview" 
+                          className="max-h-20 max-w-20 object-contain"
+                        />
+                      ) : (
+                        <span className="text-sm text-gray-400">No photo</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        id="photo-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Upload a photo of your product. Recommended size: 500x500px.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-4">
                   <div className="grid flex-1 gap-2">
                     <Label htmlFor="name">Product Name</Label>
@@ -401,27 +489,6 @@ export default function Products() {
                       id="name"
                       {...form.register("name")}
                     />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="grid flex-1 gap-2">
-                    <Label htmlFor="barcode">Barcode</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="barcode"
-                        {...form.register("barcode")}
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleScanBarcode}
-                      >
-                        <Barcode className="h-4 w-4 mr-2" />
-                        Scan
-                      </Button>
-                    </div>
                   </div>
                 </div>
 
@@ -565,6 +632,15 @@ export default function Products() {
                     id="loyaltyPoints"
                     type="number"
                     {...form.register("loyaltyPoints", { valueAsNumber: true })}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="expiryDate">Expiration Date</Label>
+                  <DatePicker
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    placeholder="Select expiry date"
                   />
                 </div>
               </div>
@@ -597,9 +673,36 @@ export default function Products() {
               <TabsTrigger value="additional">Additional Info</TabsTrigger>
             </TabsList>
             
-            {/* Similar content to Add Product dialog, but with current values */}
             <TabsContent value="basics">
               <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label>Product Photo</Label>
+                  <div className="flex items-center gap-4">
+                    <div className="border rounded-md p-2 w-24 h-24 flex items-center justify-center">
+                      {photoPreview ? (
+                        <img 
+                          src={photoPreview} 
+                          alt="Product preview" 
+                          className="max-h-20 max-w-20 object-contain"
+                        />
+                      ) : (
+                        <span className="text-sm text-gray-400">No photo</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        id="photo-upload-edit"
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Upload a photo of your product. Recommended size: 500x500px.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-4">
                   <div className="grid flex-1 gap-2">
                     <Label htmlFor="name">Product Name</Label>
@@ -607,27 +710,6 @@ export default function Products() {
                       id="name"
                       {...form.register("name")}
                     />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="grid flex-1 gap-2">
-                    <Label htmlFor="barcode">Barcode</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="barcode"
-                        {...form.register("barcode")}
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleScanBarcode}
-                      >
-                        <Barcode className="h-4 w-4 mr-2" />
-                        Scan
-                      </Button>
-                    </div>
                   </div>
                 </div>
 
@@ -771,6 +853,15 @@ export default function Products() {
                     id="loyaltyPoints"
                     type="number"
                     {...form.register("loyaltyPoints", { valueAsNumber: true })}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="expiryDate">Expiration Date</Label>
+                  <DatePicker
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    placeholder="Select expiry date"
                   />
                 </div>
               </div>

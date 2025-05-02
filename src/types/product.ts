@@ -1,25 +1,4 @@
-
-export interface Category {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface Unit {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface PriceLevel {
-  id: string;
-  minQuantity: number;
-  price: number;
-}
+// Product types for inventory management
 
 export interface Product {
   id: string;
@@ -34,21 +13,57 @@ export interface Product {
   retailPrice: number;
   priceLevels: PriceLevel[];
   loyaltyPoints: number;
-  imageUrl?: string;
   createdAt: string;
   updatedAt: string;
-  // Added fields that might be used elsewhere
-  expirationDate?: string;
+  photoUrl?: string; // New field for product photo
+  expiryDate?: string; // New field for product expiration date
+}
+
+export interface PriceLevel {
+  id: string;
+  minQuantity: number;
+  price: number;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface Unit {
+  id: string;
+  name: string;
+  description?: string;
 }
 
 export interface ProductVariant {
   id: string;
   productId: string;
   name: string;
+  sku: string;
   barcode?: string;
-  stockQuantity: number;
   costPrice: number;
   retailPrice: number;
+  stockQuantity: number;
+}
+
+export interface StockTransaction {
+  id: string;
+  productId: string;
+  type: 'purchase' | 'sale' | 'return' | 'adjustment';
+  quantity: number;
+  unitPrice: number;
+  supplierId?: string;
+  invoiceNumber?: string;
+  date: string;
+  notes?: string;
+  variantDetails?: ProductVariant;
+  productPriceUpdate?: {
+    productId: string;
+    costPrice: number;
+    retailPrice: number;
+  };
 }
 
 export interface Supplier {
@@ -58,84 +73,4 @@ export interface Supplier {
   phone?: string;
   email?: string;
   address?: string;
-}
-
-export interface StockTransaction {
-  id: string;
-  productId: string;
-  variantId?: string;
-  type: 'purchase' | 'sale' | 'return' | 'adjustment';
-  quantity: number;
-  unitPrice: number;
-  supplierId?: string;
-  invoiceNumber?: string;
-  date: string;
-  notes?: string;
-  // These fields are for the enhanced inventory management
-  variantDetails?: {
-    id: string;
-    productId: string;
-    name: string;
-    stockQuantity: number;
-    costPrice: number;
-    retailPrice: number;
-  };
-  productPriceUpdate?: {
-    productId: string;
-    costPrice: number;
-    retailPrice: number;
-  };
-}
-
-export interface Customer {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  loyaltyPoints: number;
-  totalSpent: number;
-  lastPurchase?: string;
-  notes?: string;
-  code?: string;
-}
-
-export interface PurchaseInvoice {
-  id: string;
-  invoiceNumber: string;
-  supplierId: string;
-  date: string;
-  items: {
-    productId: string;
-    variantId?: string;
-    quantity: number;
-    unitPrice: number;
-  }[];
-  totalAmount: number;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface SaleInvoice {
-  id: string;
-  invoiceNumber: string;
-  customerId?: string;
-  date: string;
-  items: {
-    productId: string;
-    variantId?: string;
-    quantity: number;
-    unitPrice: number;
-    discount?: number;
-  }[];
-  subtotal: number;
-  taxAmount: number;
-  discount?: number;
-  totalAmount: number;
-  amountPaid: number;
-  paymentMethod: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
 }
