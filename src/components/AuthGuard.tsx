@@ -1,10 +1,10 @@
 
 import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface AuthGuardProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   requiredRole?: "owner" | "warehouse_admin" | "cashier" | null;
 }
 
@@ -50,7 +50,8 @@ const AuthGuard = ({ children, requiredRole = null }: AuthGuardProps) => {
     );
   }
 
-  return <>{children}</>;
+  // Using Outlet to render child routes
+  return children || <Outlet />;
 };
 
 export default AuthGuard;

@@ -25,47 +25,50 @@ import Billing from "./pages/Billing";
 import AuthGuard from "./components/AuthGuard";
 import { Toaster } from "@/components/ui/sonner";
 import ComingSoon from "./pages/ComingSoon";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Index />} />
-        
-        {/* Auth routes */}
-        <Route path="/auth" element={<AuthLayout />}>
-          <Route path="login" element={<Login />} />
-          <Route path="register" element={<Register />} />
-          <Route path="forgot-password" element={<ForgotPassword />} />
-          <Route path="unauthorized" element={<Unauthorized />} />
-        </Route>
-        
-        {/* Protected routes */}
-        <Route element={<AuthGuard />}>
-          <Route element={<AppLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/categories" element={<Categories />} />
-            <Route path="/units" element={<Units />} />
-            <Route path="/pos" element={<POS />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/inventory" element={<Inventory />} />
-            <Route path="/customers" element={<Customers />} />
-            <Route path="/loyalty" element={<LoyaltyProgram />} />
-            <Route path="/expenses" element={<Expenses />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/billing" element={<Billing />} />
-            <Route path="/coming-soon" element={<ComingSoon />} />
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<Index />} />
+          
+          {/* Auth routes */}
+          <Route path="/auth" element={<AuthLayout />}>
+            <Route path="login" element={<Login />} />
+            <Route path="register" element={<Register />} />
+            <Route path="forgot-password" element={<ForgotPassword />} />
+            <Route path="unauthorized" element={<Unauthorized />} />
           </Route>
-        </Route>
+          
+          {/* Protected routes */}
+          <Route element={<AuthGuard />}>
+            <Route element={<AppLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/categories" element={<Categories />} />
+              <Route path="/units" element={<Units />} />
+              <Route path="/pos" element={<POS />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/inventory" element={<Inventory />} />
+              <Route path="/customers" element={<Customers />} />
+              <Route path="/loyalty" element={<LoyaltyProgram />} />
+              <Route path="/expenses" element={<Expenses />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/billing" element={<Billing />} />
+              <Route path="/coming-soon" element={<ComingSoon />} />
+            </Route>
+          </Route>
 
-        {/* 404 route */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Toaster />
-    </Router>
+          {/* 404 route */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Toaster />
+      </Router>
+    </AuthProvider>
   );
 }
 
