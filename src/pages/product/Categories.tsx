@@ -88,7 +88,7 @@ const Categories = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="container mx-auto space-y-4 w-full">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Product Categories</h1>
@@ -104,7 +104,7 @@ const Categories = () => {
         </div>
       </div>
 
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Categories</CardTitle>
           <CardDescription>

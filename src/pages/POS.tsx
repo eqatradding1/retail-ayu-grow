@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,10 +28,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { Search, Barcode, ShoppingCart, X, Plus, Minus, CreditCard, Banknote, Tag, Package } from "lucide-react";
-import { Product, Category } from "@/types/product";
-import VoiceSearch from "@/components/pos/VoiceSearch";
+import { Product } from "@/types/product";
+import { DatePicker } from "@/components/ui/date-picker";
+import VoiceToCart from "@/components/pos/VoiceToCart";
 
 // Mock data for products - this would be fetched from Supabase in a real implementation
 const initialProducts = [
@@ -131,17 +133,21 @@ const POS = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
+  const [isNewCustomerDialogOpen, setIsNewCustomerDialogOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "transfer" | "credit">("cash");
-  const [currentCategory, setCurrentCategory] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string; points: number } | null>(null);
   const [usePoints, setUsePoints] = useState(false);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [lastSaleId, setLastSaleId] = useState<string | null>(null);
-
-  // Handle voice search result
-  const handleVoiceSearchResult = (term: string) => {
-    setSearchTerm(term);
-  };
+  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+  
+  // New customer form data
+  const [newCustomer, setNewCustomer] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    address: ""
+  });
 
   // Calculate totals
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -149,15 +155,13 @@ const POS = () => {
   const total = subtotal - pointsDiscount;
   const totalPoints = cart.reduce((sum, item) => sum + (item.loyaltyPoints * item.quantity), 0);
 
-  // Filtered products based on search and category
+  // Filtered products based on search
   const filteredProducts = products.filter(product => {
     const matchesSearch = searchTerm === "" || 
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (product.barcode && product.barcode.includes(searchTerm));
     
-    const matchesCategory = currentCategory === null || product.categoryId === currentCategory;
-    
-    return matchesSearch && matchesCategory;
+    return matchesSearch;
   });
 
   // Handle barcode scan
@@ -170,13 +174,13 @@ const POS = () => {
   };
 
   // Add product to cart
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, quantity: number = 1) => {
     const existingItemIndex = cart.findIndex(item => item.productId === product.id);
     
     if (existingItemIndex >= 0) {
       // Product already in cart, increase quantity
       const newCart = [...cart];
-      newCart[existingItemIndex].quantity += 1;
+      newCart[existingItemIndex].quantity += quantity;
       
       // Apply wholesale price level if applicable
       const newQuantity = newCart[existingItemIndex].quantity;
@@ -194,10 +198,23 @@ const POS = () => {
         productId: product.id,
         name: product.name,
         price: product.retailPrice,
-        quantity: 1,
+        quantity: quantity,
         unitName,
         loyaltyPoints: product.loyaltyPoints
       }]);
+    }
+  };
+
+  // Add by product name (for voice commands)
+  const addToCartByName = (productName: string, quantity: number = 1) => {
+    const product = products.find(
+      p => p.name.toLowerCase().includes(productName.toLowerCase())
+    );
+    
+    if (product) {
+      addToCart(product, quantity);
+    } else {
+      toast.error(`Product "${productName}" not found`);
     }
   };
 
@@ -264,6 +281,42 @@ const POS = () => {
       toast.success("Sale completed successfully!");
     }, 500);
   };
+  
+  // Handle adding new customer
+  const handleAddNewCustomer = () => {
+    if (!newCustomer.name || !newCustomer.phone) {
+      toast.error("Name and phone number are required");
+      return;
+    }
+    
+    // In a real app, this would add the customer to the database
+    const newCustomerId = `CUST-${Date.now().toString().substring(6)}`;
+    
+    // Create new customer object
+    const createdCustomer = {
+      id: newCustomerId,
+      name: newCustomer.name,
+      phone: newCustomer.phone,
+      points: 0
+    };
+    
+    // Set as selected customer
+    setSelectedCustomer(createdCustomer);
+    
+    // Close dialogs
+    setIsNewCustomerDialogOpen(false);
+    setIsCustomerDialogOpen(false);
+    
+    // Reset form
+    setNewCustomer({
+      name: "",
+      phone: "",
+      email: "",
+      address: ""
+    });
+    
+    toast.success(`Customer ${newCustomer.name} added successfully`);
+  };
 
   // Print receipt
   const printReceipt = () => {
@@ -273,7 +326,7 @@ const POS = () => {
   };
 
   return (
-    <div className="container mx-auto py-6 min-h-screen">
+    <div className="container w-full mx-auto py-4 min-h-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Point of Sale</h1>
         
@@ -298,7 +351,7 @@ const POS = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Product selection area */}
         <div className="lg:col-span-2">
-          <Card>
+          <Card className="h-full">
             <CardHeader className="pb-3">
               <CardTitle>Products</CardTitle>
               
@@ -317,32 +370,11 @@ const POS = () => {
                   <Barcode className="h-4 w-4 mr-2" />
                   Scan
                 </Button>
-                <VoiceSearch onSearchResult={handleVoiceSearchResult} />
-              </div>
-              
-              {/* Categories filter */}
-              <div className="flex gap-2 overflow-x-auto py-2">
-                <Button
-                  variant={currentCategory === null ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setCurrentCategory(null)}
-                >
-                  All
-                </Button>
-                {categories.map(category => (
-                  <Button
-                    key={category.id}
-                    variant={currentCategory === category.id ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentCategory(category.id)}
-                  >
-                    {category.name}
-                  </Button>
-                ))}
+                <VoiceToCart onAddToCart={addToCartByName} />
               </div>
             </CardHeader>
             
-            <CardContent>
+            <CardContent className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {filteredProducts.map(product => (
                   <div
@@ -382,7 +414,7 @@ const POS = () => {
                 
                 {filteredProducts.length === 0 && (
                   <div className="col-span-full text-center py-10 text-gray-500">
-                    No products found. Try a different search term or category.
+                    No products found. Try a different search term.
                   </div>
                 )}
               </div>
@@ -392,7 +424,7 @@ const POS = () => {
         
         {/* Shopping cart */}
         <div>
-          <Card>
+          <Card className="h-full flex flex-col">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center">
                 <ShoppingCart className="h-5 w-5 mr-2" />
@@ -403,7 +435,7 @@ const POS = () => {
               </CardDescription>
             </CardHeader>
             
-            <CardContent>
+            <CardContent className="flex-grow overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}>
               {cart.length === 0 ? (
                 <div className="text-center py-6 text-gray-500">
                   Cart is empty. Add products to get started.
@@ -469,8 +501,8 @@ const POS = () => {
               )}
             </CardContent>
             
-            <CardFooter className="flex-col">
-              <div className="w-full border-t pt-4">
+            <CardFooter className="flex-col border-t mt-auto">
+              <div className="w-full pt-4">
                 <div className="flex justify-between mb-1">
                   <span>Subtotal</span>
                   <span>{subtotal.toLocaleString()}</span>
@@ -576,7 +608,12 @@ const POS = () => {
             {paymentMethod === "credit" && (
               <div className="grid gap-2">
                 <Label htmlFor="dueDate">Due Date</Label>
-                <Input id="dueDate" type="date" />
+                <DatePicker
+                  selected={dueDate}
+                  onSelect={setDueDate}
+                  placeholder="Select due date"
+                  allowManualEntry={true}
+                />
               </div>
             )}
           </div>
@@ -629,7 +666,14 @@ const POS = () => {
               ))}
             </div>
             
-            <Button variant="outline" className="w-full">
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => {
+                setIsNewCustomerDialogOpen(true);
+                setIsCustomerDialogOpen(false);
+              }}
+            >
               Register New Customer
             </Button>
           </div>
@@ -644,6 +688,66 @@ const POS = () => {
             <Button variant="outline" onClick={() => setIsCustomerDialogOpen(false)}>
               Cancel
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* New Customer Dialog */}
+      <Dialog open={isNewCustomerDialogOpen} onOpenChange={setIsNewCustomerDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New Customer</DialogTitle>
+            <DialogDescription>Register a new customer</DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="customerName">Name*</Label>
+              <Input 
+                id="customerName" 
+                value={newCustomer.name}
+                onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
+                placeholder="Enter customer name" 
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="customerPhone">Phone*</Label>
+              <Input 
+                id="customerPhone" 
+                value={newCustomer.phone}
+                onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
+                placeholder="Enter phone number" 
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="customerEmail">Email</Label>
+              <Input 
+                id="customerEmail" 
+                type="email"
+                value={newCustomer.email}
+                onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})}
+                placeholder="Enter email address" 
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="customerAddress">Address</Label>
+              <Input 
+                id="customerAddress" 
+                value={newCustomer.address}
+                onChange={(e) => setNewCustomer({...newCustomer, address: e.target.value})}
+                placeholder="Enter customer address" 
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewCustomerDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddNewCustomer}>Save Customer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

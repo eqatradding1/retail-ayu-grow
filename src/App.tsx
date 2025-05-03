@@ -48,8 +48,8 @@ function App() {
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/products" element={<Products />} />
-              <Route path="/categories" element={<Categories />} />
-              <Route path="/units" element={<Units />} />
+              <Route path="/products/categories" element={<Categories />} />
+              <Route path="/products/units" element={<Units />} />
               <Route path="/pos" element={<POS />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/inventory" element={<Inventory />} />
