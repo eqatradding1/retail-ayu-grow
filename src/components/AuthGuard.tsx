@@ -9,8 +9,8 @@ const AuthGuard = () => {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Spinner size="lg" />
+      <div className="flex h-screen items-center justify-center bg-purple-50">
+        <Spinner size="lg" className="border-purple-600 border-t-transparent" />
       </div>
     );
   }

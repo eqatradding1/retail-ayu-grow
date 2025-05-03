@@ -10,7 +10,7 @@ const AppLayout = () => {
   const isMobile = useIsMobile();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-purple-50/30">
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />

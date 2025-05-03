@@ -33,6 +33,101 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_payments: {
+        Row: {
+          amount: number
+          credit_record_id: string | null
+          id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+          receipt_url: string | null
+        }
+        Insert: {
+          amount: number
+          credit_record_id?: string | null
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          receipt_url?: string | null
+        }
+        Update: {
+          amount?: number
+          credit_record_id?: string | null
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          receipt_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_payments_credit_record_id_fkey"
+            columns: ["credit_record_id"]
+            isOneToOne: false
+            referencedRelation: "credit_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_records: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          due_date: string
+          id: string
+          initial_amount: number
+          last_reminder_date: string | null
+          notes: string | null
+          remaining_amount: number
+          status: string
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          due_date: string
+          id?: string
+          initial_amount: number
+          last_reminder_date?: string | null
+          notes?: string | null
+          remaining_amount: number
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          due_date?: string
+          id?: string
+          initial_amount?: number
+          last_reminder_date?: string | null
+          notes?: string | null
+          remaining_amount?: number
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_records_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -66,6 +161,45 @@ export type Database = {
         }
         Relationships: []
       }
+      email_settings: {
+        Row: {
+          created_at: string
+          email_signature: string | null
+          enable_emails: boolean
+          id: string
+          send_low_stock_alert: boolean
+          send_order_confirmation: boolean
+          send_payment_receipt: boolean
+          sender_email: string | null
+          sender_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email_signature?: string | null
+          enable_emails?: boolean
+          id?: string
+          send_low_stock_alert?: boolean
+          send_order_confirmation?: boolean
+          send_payment_receipt?: boolean
+          sender_email?: string | null
+          sender_name?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email_signature?: string | null
+          enable_emails?: boolean
+          id?: string
+          send_low_stock_alert?: boolean
+          send_order_confirmation?: boolean
+          send_payment_receipt?: boolean
+          sender_email?: string | null
+          sender_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
@@ -95,6 +229,39 @@ export type Database = {
           description?: string | null
           id?: string
           receipt_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      invoice_settings: {
+        Row: {
+          created_at: string
+          due_days: number
+          id: string
+          next_number: number
+          prefix: string
+          show_logo: boolean
+          terms_and_conditions: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_days?: number
+          id?: string
+          next_number?: number
+          prefix?: string
+          show_logo?: boolean
+          terms_and_conditions?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_days?: number
+          id?: string
+          next_number?: number
+          prefix?: string
+          show_logo?: boolean
+          terms_and_conditions?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -211,6 +378,7 @@ export type Database = {
           id: string
           last_name: string | null
           role: string | null
+          role_id: string | null
           updated_at: string
         }
         Insert: {
@@ -220,6 +388,7 @@ export type Database = {
           id: string
           last_name?: string | null
           role?: string | null
+          role_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -229,9 +398,18 @@ export type Database = {
           id?: string
           last_name?: string | null
           role?: string | null
+          role_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "user_roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stock_transactions: {
         Row: {
@@ -276,6 +454,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      store_settings: {
+        Row: {
+          address: string | null
+          created_at: string
+          currency_code: string
+          email: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          phone: string | null
+          tax_id: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          currency_code?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          currency_code?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      tax_settings: {
+        Row: {
+          created_at: string
+          default_tax_rate: number
+          enable_tax: boolean
+          id: string
+          include_tax_in_price: boolean
+          tax_name: string
+          tax_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_tax_rate?: number
+          enable_tax?: boolean
+          id?: string
+          include_tax_in_price?: boolean
+          tax_name?: string
+          tax_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_tax_rate?: number
+          enable_tax?: boolean
+          id?: string
+          include_tax_in_price?: boolean
+          tax_name?: string
+          tax_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       transaction_items: {
         Row: {
@@ -389,6 +642,30 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          permissions: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          permissions: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          permissions?: Json
           updated_at?: string
         }
         Relationships: []

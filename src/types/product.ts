@@ -111,3 +111,88 @@ export interface TransactionItem {
   subtotal: number;
   created_at: string;
 }
+
+// Settings interfaces
+export interface StoreSettings {
+  id: string;
+  name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  tax_id?: string;
+  currency_code: string;
+  logo_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaxSettings {
+  id: string;
+  enable_tax: boolean;
+  default_tax_rate: number;
+  tax_name: string;
+  tax_number?: string;
+  include_tax_in_price: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InvoiceSettings {
+  id: string;
+  prefix: string;
+  next_number: number;
+  terms_and_conditions?: string;
+  show_logo: boolean;
+  due_days: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmailSettings {
+  id: string;
+  enable_emails: boolean;
+  sender_name: string;
+  sender_email?: string;
+  send_order_confirmation: boolean;
+  send_payment_receipt: boolean;
+  send_low_stock_alert: boolean;
+  email_signature?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserRole {
+  id: string;
+  name: string;
+  permissions: {
+    [key: string]: boolean;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreditRecord {
+  id: string;
+  transaction_id?: string;
+  customer_id?: string;
+  initial_amount: number;
+  remaining_amount: number;
+  due_date: string;
+  status: string;
+  last_reminder_date?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  customer?: Customer;
+}
+
+export interface CreditPayment {
+  id: string;
+  credit_record_id?: string;
+  amount: number;
+  payment_method?: string;
+  payment_date: string;
+  notes?: string;
+  receipt_url?: string;
+}
