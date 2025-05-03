@@ -12,7 +12,7 @@ interface VoiceSearchProps {
 const VoiceSearch = ({ onSearchResult }: VoiceSearchProps) => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const [recognition, setRecognition] = useState<any>(null);
+  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   
   // Initialize speech recognition
   useEffect(() => {
@@ -25,14 +25,14 @@ const VoiceSearch = ({ onSearchResult }: VoiceSearchProps) => {
       recognitionInstance.interimResults = false;
       recognitionInstance.lang = 'en-US'; // Set language
       
-      recognitionInstance.onresult = (event: any) => {
-        const current = event.resultIndex;
-        const result = event.results[current][0].transcript;
+      recognitionInstance.onresult = (event) => {
+        // Fix: Access results using the correct event properties
+        const result = event.results[0][0].transcript;
         setTranscript(result);
         handleVoiceCommand(result);
       };
       
-      recognitionInstance.onerror = (event: any) => {
+      recognitionInstance.onerror = (event) => {
         console.error("Speech recognition error", event.error);
         setIsListening(false);
         toast.error("Speech recognition failed. Please try again.");

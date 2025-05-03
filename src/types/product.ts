@@ -1,76 +1,113 @@
-// Product types for inventory management
+
+// Product types for inventory management with Supabase integration
 
 export interface Product {
   id: string;
   name: string;
   barcode?: string;
   description?: string;
-  categoryId: string;
-  unitId: string;
-  stockQuantity: number;
-  minStockLevel: number;
-  costPrice: number;
-  retailPrice: number;
+  category_id: string;
+  unit_id: string;
+  stock_quantity: number;
+  min_stock_level: number;
+  cost_price: number;
+  retail_price: number;
   priceLevels: PriceLevel[];
-  loyaltyPoints: number;
-  createdAt: string;
-  updatedAt: string;
-  photoUrl?: string; // New field for product photo
-  expiryDate?: string; // New field for product expiration date
+  loyalty_points: number;
+  created_at: string;
+  updated_at: string;
+  photo_url?: string;
+  expiry_date?: string;
 }
 
 export interface PriceLevel {
   id: string;
-  minQuantity: number;
+  product_id: string;
+  min_quantity: number;
   price: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Category {
   id: string;
   name: string;
   description?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Unit {
   id: string;
   name: string;
   description?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ProductVariant {
   id: string;
-  productId: string;
+  product_id: string;
   name: string;
   sku: string;
   barcode?: string;
-  costPrice: number;
-  retailPrice: number;
-  stockQuantity: number;
+  cost_price: number;
+  retail_price: number;
+  stock_quantity: number;
 }
 
 export interface StockTransaction {
   id: string;
-  productId: string;
+  product_id: string;
   type: 'purchase' | 'sale' | 'return' | 'adjustment';
   quantity: number;
-  unitPrice: number;
-  supplierId?: string;
-  invoiceNumber?: string;
+  unit_price: number;
+  supplier_id?: string;
+  invoice_number?: string;
   date: string;
   notes?: string;
   variantDetails?: ProductVariant;
-  productPriceUpdate?: {
-    productId: string;
-    costPrice: number;
-    retailPrice: number;
-  };
 }
 
 export interface Supplier {
   id: string;
   name: string;
-  contactPerson?: string;
+  contact_person?: string;
   phone?: string;
   email?: string;
   address?: string;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  loyalty_points: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Transaction {
+  id: string;
+  customer_id?: string;
+  total_amount: number;
+  discount_amount?: number;
+  tax_amount?: number;
+  payment_method?: string;
+  payment_status: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransactionItem {
+  id: string;
+  transaction_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+  created_at: string;
 }

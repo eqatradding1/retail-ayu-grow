@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,59 +28,139 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Pencil, Trash2 } from "lucide-react";
-
-// Mock data for categories - will be replaced with Supabase integration
-const initialCategories = [
-  { id: "1", name: "Vegetables", description: "Fresh vegetables" },
-  { id: "2", name: "Fruits", description: "Fresh fruits" },
-  { id: "3", name: "Dairy", description: "Milk and dairy products" },
-  { id: "4", name: "Bakery", description: "Breads and pastries" },
-  { id: "5", name: "Beverages", description: "Drinks and beverages" },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { Category } from "@/types/product";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Categories = () => {
-  const [categories, setCategories] = useState(initialCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [currentCategory, setCurrentCategory] = useState({
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentCategory, setCurrentCategory] = useState<Category>({
     id: "",
     name: "",
     description: "",
   });
 
   const navigate = useNavigate();
+  const { user } = useAuth();
   
-  const handleAddCategory = () => {
-    const newCategory = {
-      id: Date.now().toString(),
-      name: currentCategory.name,
-      description: currentCategory.description,
-    };
-    setCategories([...categories, newCategory]);
-    setIsAddDialogOpen(false);
-    toast.success("Category added successfully");
-    setCurrentCategory({ id: "", name: "", description: "" });
+  useEffect(() => {
+    if (user) {
+      fetchCategories();
+    }
+  }, [user]);
+
+  const fetchCategories = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        setCategories(data);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast.error('Failed to load categories');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleAddCategory = async () => {
+    try {
+      if (!currentCategory.name) {
+        toast.error('Category name is required');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('categories')
+        .insert([{
+          name: currentCategory.name,
+          description: currentCategory.description,
+        }])
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        setCategories([...categories, data[0]]);
+        toast.success('Category added successfully');
+        setIsAddDialogOpen(false);
+        setCurrentCategory({ id: "", name: "", description: "" });
+      }
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast.error('Failed to add category');
+    }
   };
 
-  const handleEditCategory = () => {
-    const updatedCategories = categories.map((category) =>
-      category.id === currentCategory.id ? currentCategory : category
-    );
-    setCategories(updatedCategories);
-    setIsEditDialogOpen(false);
-    toast.success("Category updated successfully");
-    setCurrentCategory({ id: "", name: "", description: "" });
+  const handleEditCategory = async () => {
+    try {
+      if (!currentCategory.name) {
+        toast.error('Category name is required');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('categories')
+        .update({
+          name: currentCategory.name,
+          description: currentCategory.description,
+        })
+        .eq('id', currentCategory.id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update the categories list
+      setCategories(
+        categories.map(category => 
+          category.id === currentCategory.id ? currentCategory : category
+        )
+      );
+      
+      toast.success('Category updated successfully');
+      setIsEditDialogOpen(false);
+      setCurrentCategory({ id: "", name: "", description: "" });
+    } catch (error) {
+      console.error('Error updating category:', error);
+      toast.error('Failed to update category');
+    }
   };
 
-  const handleDeleteCategory = () => {
-    const updatedCategories = categories.filter(
-      (category) => category.id !== currentCategory.id
-    );
-    setCategories(updatedCategories);
-    setIsDeleteDialogOpen(false);
-    toast.success("Category deleted successfully");
-    setCurrentCategory({ id: "", name: "", description: "" });
+  const handleDeleteCategory = async () => {
+    try {
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', currentCategory.id);
+
+      if (error) {
+        throw error;
+      }
+
+      setCategories(categories.filter(category => category.id !== currentCategory.id));
+      toast.success('Category deleted successfully');
+      setIsDeleteDialogOpen(false);
+      setCurrentCategory({ id: "", name: "", description: "" });
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast.error('Failed to delete category');
+    }
   };
 
   const handleBackToProducts = () => {
@@ -113,45 +193,57 @@ const Categories = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {categories.map((category) => (
-                <TableRow key={category.id}>
-                  <TableCell className="font-medium">{category.name}</TableCell>
-                  <TableCell>{category.description}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setCurrentCategory(category);
-                        setIsEditDialogOpen(true);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setCurrentCategory(category);
-                        setIsDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+          {isLoading ? (
+            <div className="text-center py-4">Loading categories...</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {categories.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center">
+                      No categories found. Add one to get started.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  categories.map((category) => (
+                    <TableRow key={category.id}>
+                      <TableCell className="font-medium">{category.name}</TableCell>
+                      <TableCell>{category.description}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setCurrentCategory(category);
+                            setIsEditDialogOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setCurrentCategory(category);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -182,7 +274,7 @@ const Categories = () => {
               <label htmlFor="description">Description</label>
               <Input
                 id="description"
-                value={currentCategory.description}
+                value={currentCategory.description || ''}
                 onChange={(e) =>
                   setCurrentCategory({
                     ...currentCategory,
@@ -193,7 +285,10 @@ const Categories = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setIsAddDialogOpen(false);
+              setCurrentCategory({ id: "", name: "", description: "" });
+            }}>
               Cancel
             </Button>
             <Button onClick={handleAddCategory}>Add Category</Button>
@@ -228,7 +323,7 @@ const Categories = () => {
               <label htmlFor="edit-description">Description</label>
               <Input
                 id="edit-description"
-                value={currentCategory.description}
+                value={currentCategory.description || ''}
                 onChange={(e) =>
                   setCurrentCategory({
                     ...currentCategory,
@@ -239,10 +334,10 @@ const Categories = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => {
+              setIsEditDialogOpen(false);
+              setCurrentCategory({ id: "", name: "", description: "" });
+            }}>
               Cancel
             </Button>
             <Button onClick={handleEditCategory}>Save Changes</Button>
@@ -266,7 +361,10 @@ const Categories = () => {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setIsDeleteDialogOpen(false)}
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setCurrentCategory({ id: "", name: "", description: "" });
+              }}
             >
               Cancel
             </Button>

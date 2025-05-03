@@ -25,8 +25,8 @@ const VoiceToCart = ({ onAddToCart }: VoiceToCartProps) => {
       recognitionInstance.lang = 'en-US'; // Set language
       
       recognitionInstance.onresult = (event) => {
-        const current = event.resultIndex;
-        const result = event.results[current][0].transcript;
+        // Fix: Access results using the correct event properties
+        const result = event.results[0][0].transcript;
         setTranscript(result);
         handleVoiceCommand(result);
       };

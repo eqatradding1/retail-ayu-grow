@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,12 +29,9 @@ import {
 import { toast } from "@/components/ui/sonner";
 import { Plus, Pencil, Trash } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-interface Unit {
-  id: string;
-  name: string;
-  description: string;
-}
+import { supabase } from "@/integrations/supabase/client";
+import { Unit } from "@/types/product";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Units = () => {
   const [units, setUnits] = useState<Unit[]>([]);
@@ -42,63 +40,121 @@ const Units = () => {
   const [description, setDescription] = useState("");
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Mock data for units
-    const mockUnits = [
-      { id: "1", name: "pcs", description: "Pieces" },
-      { id: "2", name: "kg", description: "Kilograms" },
-      { id: "3", name: "g", description: "Grams" },
-      { id: "4", name: "l", description: "Liters" },
-      { id: "5", name: "ml", description: "Milliliters" },
-    ];
-    setUnits(mockUnits);
-  }, []);
-
-  const handleCreate = () => {
-    if (!name || !description) {
-      toast.error("Please fill in all fields");
-      return;
+    if (user) {
+      fetchUnits();
     }
+  }, [user]);
 
-    // In a real app, this would save to a database
-    const newUnit = {
-      id: Date.now().toString(),
-      name,
-      description,
-    };
-    setUnits([...units, newUnit]);
-    toast.success("Unit created successfully!");
-    handleCloseDialog();
+  const fetchUnits = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('units')
+        .select('*')
+        .order('name');
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        setUnits(data);
+      }
+    } catch (error) {
+      console.error('Error fetching units:', error);
+      toast.error('Failed to load units');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleUpdate = () => {
-    if (!name || !description || !selectedUnit) {
-      toast.error("Please fill in all fields");
-      return;
-    }
+  const handleCreate = async () => {
+    try {
+      if (!name || !description) {
+        toast.error("Please fill in all fields");
+        return;
+      }
 
-    // In a real app, this would update the database
-    const updatedUnits = units.map((unit) =>
-      unit.id === selectedUnit.id ? { ...unit, name, description } : unit
-    );
-    setUnits(updatedUnits);
-    toast.success("Unit updated successfully!");
-    handleCloseDialog();
+      const { data, error } = await supabase
+        .from('units')
+        .insert([{ name, description }])
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        setUnits([...units, data[0]]);
+        toast.success("Unit created successfully!");
+        handleCloseDialog();
+      }
+    } catch (error) {
+      console.error('Error creating unit:', error);
+      toast.error('Failed to create unit');
+    }
   };
 
-  const handleDelete = (id: string) => {
-    // In a real app, this would delete from the database
-    setUnits(units.filter((unit) => unit.id !== id));
-    toast.success("Unit deleted successfully!");
+  const handleUpdate = async () => {
+    try {
+      if (!name || !description || !selectedUnit) {
+        toast.error("Please fill in all fields");
+        return;
+      }
+
+      const { error } = await supabase
+        .from('units')
+        .update({ name, description })
+        .eq('id', selectedUnit.id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update the units list
+      setUnits(units.map(unit => 
+        unit.id === selectedUnit.id 
+          ? { ...unit, name, description } 
+          : unit
+      ));
+      
+      toast.success("Unit updated successfully!");
+      handleCloseDialog();
+    } catch (error) {
+      console.error('Error updating unit:', error);
+      toast.error('Failed to update unit');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('units')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      setUnits(units.filter(unit => unit.id !== id));
+      toast.success("Unit deleted successfully!");
+    } catch (error) {
+      console.error('Error deleting unit:', error);
+      toast.error('Failed to delete unit');
+    }
   };
 
   const handleOpenDialog = (unit: Unit | null = null) => {
     setSelectedUnit(unit);
     if (unit) {
       setName(unit.name);
-      setDescription(unit.description);
+      setDescription(unit.description || '');
       setIsEditMode(true);
     } else {
       setName("");
@@ -145,31 +201,43 @@ const Units = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {units.map((unit) => (
-                <TableRow key={unit.id}>
-                  <TableCell>{unit.name}</TableCell>
-                  <TableCell>{unit.description}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(unit)}>
-                      <Pencil className="h-4 w-4 mr-2" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(unit.id)}>
-                      <Trash className="h-4 w-4 mr-2" />
-                    </Button>
-                  </TableCell>
+          {isLoading ? (
+            <div className="text-center py-4">Loading units...</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {units.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center">
+                      No units found. Add one to get started.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  units.map((unit) => (
+                    <TableRow key={unit.id}>
+                      <TableCell>{unit.name}</TableCell>
+                      <TableCell>{unit.description}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(unit)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(unit.id)}>
+                          <Trash className="h-4 w-4 mr-2" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
