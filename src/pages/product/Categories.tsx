@@ -1,4 +1,6 @@
-import { useState, useNavigate } from "react";
+
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,8 +26,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/components/ui/sonner";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { Pencil, Trash2 } from "lucide-react";
 
 // Mock data for categories - will be replaced with Supabase integration
 const initialCategories = [
@@ -98,7 +100,7 @@ const Categories = () => {
           <Button variant="outline" onClick={handleBackToProducts}>
             Back to Products
           </Button>
-          <Button onClick={() => setIsDialogOpen(true)}>Add Category</Button>
+          <Button onClick={() => setIsAddDialogOpen(true)}>Add Category</Button>
         </div>
       </div>
 
